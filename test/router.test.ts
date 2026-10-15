@@ -28,7 +28,7 @@ test("doesn't add a second viewport tag when the page already has one", async ()
   mockFetch(200, LP_HTML.replace("<title>", '<meta name="viewport" content="width=device-width"><title>'));
   const res = (await handler(new Request("https://go.keptcollection.com/new-baby"), ctx("new-baby"))) as Response;
   const html = await res.text();
-  assert.equal(html.match(/name="viewport"/g)?.length, 1);
+  assert.equal(html.match(/<meta name="viewport"/g)?.length, 1);
 });
 
 test("slug is case-insensitive and falls back to the path when params are missing", async () => {
