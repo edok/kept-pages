@@ -8,7 +8,7 @@ const VIEWPORT_META = '<meta name="viewport" content="width=device-width, initia
 // own site (Project configuration > General > Powered by Netlify badge). It has
 // no place on a Kept page, so drop it here rather than toggling every project.
 // It sits at the very end of the HTML, so only the tail is searched.
-export function stripNetlifyBadge(html: string): string {
+function stripNetlifyBadge(html: string): string {
   const tailStart = Math.max(0, html.length - 4000);
   const tail = html.slice(tailStart).replace(/<script\b[^>]*\/\.netlify\/scripts\/hud[^>]*>\s*<\/script>/gi, "");
   return html.slice(0, tailStart) + tail;
