@@ -10,3 +10,11 @@
     'https://go\.keptcollection\.com/.*',
     'https://([a-z0-9-]+--)?kept-pages\.netlify\.app/.*',
   ]
+
+# Landing-page videos (public/media/<page>/<name>-<hash>.mp4). The hash in the
+# filename changes with the file, so they can be cached for a year.
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Robots-Tag = "noindex"
