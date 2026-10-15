@@ -1,0 +1,4 @@
+# Landing pages are served by netlify/edge-functions/landing-page.ts.
+# Everything else (the bare domain, typos, old links) goes to the store.
+# Netlify keeps the query string, so ad params survive the redirect.
+/*  https://keptcollection.com/  302
