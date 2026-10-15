@@ -3,6 +3,7 @@
 // change here reaches all of them on the next push.
 //
 // What it does in the visitor's browser:
+//  0. Keeps a mobile viewport tag on the page (see ensureViewport).
 //  1. Loads the Meta pixel and fires PageView.
 //  2. When someone clicks a link to keptcollection.com, copies the ad and
 //     attribution params from the landing page URL (utm_*, fbclid, trybe, ...)
@@ -12,6 +13,22 @@ export function trackingSnippet(opts: { pixelId: string; lp: string }): string {
   const cfg = JSON.stringify({ pixelId: opts.pixelId, lp: opts.lp }).replace(/</g, "\\u003c");
   return `<script>/* Kept LP tracking, added by the go.keptcollection.com router */
 (function (cfg) {
+  // The Claude Design export unpacks itself and replaces <head>, dropping the
+  // viewport tag the router added. Put it back whenever it goes missing.
+  function ensureViewport() {
+    if (document.querySelector('meta[name="viewport"]')) return;
+    var m = document.createElement('meta');
+    m.name = 'viewport';
+    m.content = 'width=device-width, initial-scale=1';
+    (document.head || document.documentElement).appendChild(m);
+  }
+  ensureViewport();
+  if (window.MutationObserver) {
+    var mo = new MutationObserver(ensureViewport);
+    mo.observe(document, { childList: true, subtree: true });
+    window.addEventListener('load', function () { ensureViewport(); setTimeout(function () { ensureViewport(); mo.disconnect(); }, 5000); });
+  }
+
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
   n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
   n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
