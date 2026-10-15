@@ -80,7 +80,7 @@ function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
-export function optimizeBundle(html: string, opts: { slug: string; origin: string }): BundleResult | null {
+export function optimizeBundle(html: string, opts: { slug: string; origin: string; videos?: string[] }): BundleResult | null {
   const m = scriptBody(html, MANIFEST_TAG);
   const t = scriptBody(html, TEMPLATE_TAG);
   if (!m || !t || t.start < m.end) return null;
@@ -94,6 +94,21 @@ export function optimizeBundle(html: string, opts: { slug: string; origin: strin
   let moved = 0;
   const preloadHrefs: string[] = [];
   const tokens: Array<[string, string]> = [];
+
+  // Videos: swap each inline video for the static copy configured for this page
+  // (src/lps.ts `videos`, in the order they appear on the page). Static files
+  // support the byte-range requests phones need to stream video. A video with
+  // no configured copy stays inline.
+  const videoUuids = Object.keys(manifest)
+    .filter((uuid) => /^video\//i.test(manifest[uuid]?.mime ?? "") && template.includes(uuid))
+    .sort((a, b) => template.indexOf(a) - template.indexOf(b));
+  videoUuids.forEach((uuid, i) => {
+    const url = opts.videos?.[i];
+    if (!url) return;
+    template = template.split(uuid).join(url);
+    delete manifest[uuid];
+    moved++;
+  });
 
   for (const [uuid, entry] of Object.entries(manifest)) {
     if (!entry || typeof entry.data !== "string" || entry.compressed) continue;
@@ -126,6 +141,13 @@ export function optimizeBundle(html: string, opts: { slug: string; origin: strin
       const bg = cdn(src);
       template = template.replace(new RegExp(`url\\((["']?)${uuid}\\1\\)`, "g"), `url("${bg}")`);
       preloadHrefs.push(bg);
+    }
+
+    // <video poster="uuid"> → optimized full-size copy, preloaded (it's the first paint of a video hero).
+    if (template.includes(`poster="${uuid}"`)) {
+      const poster = cdn(src);
+      template = template.split(`poster="${uuid}"`).join(`poster="${escapeAttr(poster)}"`);
+      preloadHrefs.unshift(poster);
     }
 
     // Any other reference (inline style attribute, script) gets the plain URL.

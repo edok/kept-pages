@@ -10,6 +10,10 @@
 export type LandingPage = {
   origin: string; // e.g. "https://cd-xxxxxxxxxx-xxxxxx.netlify.app"
   name: string; // human label, for logs and the README
+  // Static copies of the page's videos, in the order they appear on the page,
+  // usually files under public/media/. Each replaces the copy the design
+  // export inlines (see src/bundle.ts).
+  videos?: string[];
 };
 
 export const LANDING_PAGES: Record<string, LandingPage> = {

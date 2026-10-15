@@ -99,6 +99,28 @@ test("after the loader runs, images are lazy, responsive and point at the image 
   assert.ok(!page.includes("KEPTIMGTOKEN"));
 });
 
+test("videos swap to their configured static copy; posters are optimized and preloaded", () => {
+  const VID = "eeeeeeee-6666-4666-8666-eeeeeeeeeeee";
+  const POSTER = "ffffffff-7777-4777-8777-ffffffffffff";
+  const man = { ...manifest,
+    [VID]: { mime: "video/mp4", compressed: false, data: b64(new Uint8Array(200_000)) },
+    [POSTER]: { mime: "image/jpeg", compressed: false, data: b64(jpeg(1080, 1350, 80_000)) } };
+  const tpl = templateHtml.replace('<section class="hero"></section>', `<section class="hero"><video class="hero-video" src="${VID}" poster="${POSTER}" aria-hidden="true"></video></section>`);
+  const bundle = BUNDLE
+    .replace(JSON.stringify(manifest), JSON.stringify(man))
+    .replace(JSON.stringify(templateHtml).replace(/<\//g, "<\\u002F"), JSON.stringify(tpl).replace(/<\//g, "<\\u002F"));
+  const r = optimizeBundle(bundle, { slug: "gift", origin: "https://go.keptcollection.com", videos: ["/media/gift/hero.mp4"] })!;
+  const left = readScript(r.html, "__bundler/manifest");
+  assert.ok(!(VID in left) && !(POSTER in left));
+  const page = runLoader(r.html);
+  assert.match(page, /<video class="hero-video" src="\/media\/gift\/hero\.mp4" poster="\/\.netlify\/images\?url=/);
+  assert.ok(r.preloads.startsWith('<link rel="preload" as="image" href="/.netlify/images?url=' + encodeURIComponent(`https://go.keptcollection.com/gift/_img/${POSTER}-`)));
+
+  // Without a configured copy the video stays inline.
+  const r2 = optimizeBundle(bundle, { slug: "gift", origin: "https://go.keptcollection.com" })!;
+  assert.ok(VID in readScript(r2.html, "__bundler/manifest"));
+});
+
 test("extractAsset returns the original bytes", async () => {
   const asset = await extractAsset(BUNDLE, A);
   assert.equal(asset?.mime, "image/jpeg");

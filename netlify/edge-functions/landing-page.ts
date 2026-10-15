@@ -44,7 +44,7 @@ export default async (request: Request, context: Context) => {
   let body = stripNetlifyBadge(html);
   let preloads = "";
   try {
-    const optimized = optimizeBundle(body, { slug, origin: url.origin });
+    const optimized = optimizeBundle(body, { slug, origin: url.origin, videos: page.videos });
     if (optimized) {
       body = optimized.html;
       preloads = optimized.preloads;

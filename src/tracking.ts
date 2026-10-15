@@ -22,11 +22,25 @@ export function trackingSnippet(opts: { pixelId: string; lp: string }): string {
     m.content = 'width=device-width, initial-scale=1';
     (document.head || document.documentElement).appendChild(m);
   }
-  ensureViewport();
+  // Decorative loop videos (aria-hidden, like a video hero) must be muted and
+  // inline to autoplay on phones. The design sets this too; this is the backup.
+  function ensureVideos() {
+    var vs = document.querySelectorAll('video[aria-hidden="true"]');
+    for (var i = 0; i < vs.length; i++) {
+      var v = vs[i];
+      if (v.__keptAuto) continue;
+      v.__keptAuto = true;
+      v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true;
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('loop', '');
+      if (v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+    }
+  }
+  function onChange() { ensureViewport(); ensureVideos(); }
+  onChange();
   if (window.MutationObserver) {
-    var mo = new MutationObserver(ensureViewport);
+    var mo = new MutationObserver(onChange);
     mo.observe(document, { childList: true, subtree: true });
-    window.addEventListener('load', function () { ensureViewport(); setTimeout(function () { ensureViewport(); mo.disconnect(); }, 5000); });
+    window.addEventListener('load', function () { onChange(); setTimeout(function () { onChange(); mo.disconnect(); }, 5000); });
   }
 
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
