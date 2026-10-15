@@ -1,4 +1,12 @@
 [build]
   publish = "public"
-  # No build step: static files plus one edge function.
+  # No build step: static files plus edge functions.
   command = "echo 'no build'"
+
+# Landing-page photos are served by netlify/edge-functions/lp-asset.ts and
+# resized/converted by Netlify Image CDN, which fetches them by full URL.
+[images]
+  remote_images = [
+    'https://go\.keptcollection\.com/.*',
+    'https://([a-z0-9-]+--)?kept-pages\.netlify\.app/.*',
+  ]
