@@ -16,12 +16,19 @@ test("serves a known page with the pixel injected at the top of <head>", async (
   assert.ok(res instanceof Response);
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.match(html, /<head><script>\/\* Kept LP tracking/);
+  assert.match(html, /<head><meta name="viewport" content="width=device-width, initial-scale=1"><script>\/\* Kept LP tracking/);
   assert.match(html, /fbq\('init', cfg\.pixelId\)/);
   assert.match(html, /\{"pixelId":"2658218640937959","lp":"new-baby"\}/);
   assert.ok(html.indexOf("Kept LP tracking") < html.indexOf("<meta charset"));
   assert.equal(res.headers.get("x-robots-tag"), "noindex");
   assert.equal(res.headers.get("netlify-vary"), "query=v");
+});
+
+test("doesn't add a second viewport tag when the page already has one", async () => {
+  mockFetch(200, LP_HTML.replace("<title>", '<meta name="viewport" content="width=device-width"><title>'));
+  const res = (await handler(new Request("https://go.keptcollection.com/new-baby"), ctx("new-baby"))) as Response;
+  const html = await res.text();
+  assert.equal(html.match(/name="viewport"/g)?.length, 1);
 });
 
 test("slug is case-insensitive and falls back to the path when params are missing", async () => {

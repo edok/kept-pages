@@ -16,7 +16,9 @@ Send to Netlify**, which gives every page its own Netlify site. This repo is a
 small router site that owns the domain:
 
 - `netlify/edge-functions/landing-page.ts` fetches the page from its site and
-  adds the tracking snippet at the top of `<head>`.
+  adds the tracking snippet at the top of `<head>`. Claude Design exports have
+  no mobile viewport tag, so it adds one too (without it, phones show a shrunken
+  desktop layout).
 - `src/lps.ts` is the list of pages (path → site), plus the Meta pixel ID and
   the fallback URL.
 - `src/tracking.ts` is the snippet. It loads the Meta pixel ("Kept Website Pixel",
