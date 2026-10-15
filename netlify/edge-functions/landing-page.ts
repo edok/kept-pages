@@ -4,6 +4,16 @@ import { injectIntoHead, trackingSnippet } from "../../src/tracking.ts";
 
 const VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">';
 
+// Netlify appends a "Powered by Netlify" badge script to pages on each design's
+// own site (Project configuration > General > Powered by Netlify badge). It has
+// no place on a Kept page, so drop it here rather than toggling every project.
+// It sits at the very end of the HTML, so only the tail is searched.
+export function stripNetlifyBadge(html: string): string {
+  const tailStart = Math.max(0, html.length - 4000);
+  const tail = html.slice(tailStart).replace(/<script\b[^>]*\/\.netlify\/scripts\/hud[^>]*>\s*<\/script>/gi, "");
+  return html.slice(0, tailStart) + tail;
+}
+
 // Serves go.keptcollection.com/<page> from that page's Netlify site, with the
 // tracking snippet added. Paths that aren't a landing page fall through to
 // public/_redirects, which sends them to the store.
@@ -42,7 +52,7 @@ export default async (request: Request, context: Context) => {
   // the page as a shrunken 980px desktop layout. Add one unless the page has it.
   const hasViewport = /<meta[^>]+name=["']?viewport/i.test(html.slice(0, 20000));
   const extras = (hasViewport ? "" : VIEWPORT_META) + trackingSnippet({ pixelId: META_PIXEL_ID, lp: slug });
-  const body = injectIntoHead(html, extras);
+  const body = injectIntoHead(stripNetlifyBadge(html), extras);
   return new Response(body, {
     status: 200,
     headers: {

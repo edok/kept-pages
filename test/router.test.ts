@@ -24,6 +24,15 @@ test("serves a known page with the pixel injected at the top of <head>", async (
   assert.equal(res.headers.get("netlify-vary"), "query=v");
 });
 
+test("removes the Powered by Netlify badge script the design's site appends", async () => {
+  const withBadge = LP_HTML + `<script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="x" data-app-host="app.netlify.com" data-account-tier="personal"></script> `;
+  mockFetch(200, withBadge);
+  const res = (await handler(new Request("https://go.keptcollection.com/new-baby"), ctx("new-baby"))) as Response;
+  const html = await res.text();
+  assert.ok(!html.includes("/.netlify/scripts/hud"));
+  assert.ok(html.includes("</body></html>"));
+});
+
 test("doesn't add a second viewport tag when the page already has one", async () => {
   mockFetch(200, LP_HTML.replace("<title>", '<meta name="viewport" content="width=device-width"><title>'));
   const res = (await handler(new Request("https://go.keptcollection.com/new-baby"), ctx("new-baby"))) as Response;
