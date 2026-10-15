@@ -26,6 +26,14 @@ small router site that owns the domain:
   keptcollection.com it copies the ad params from the landing page URL
   (`utm_*`, `fbclid`, `gclid`, `ttclid`, `msclkid`, `trybe`) onto the link, adds
   `lp=<path>`, and fires a custom `LPClick` event.
+- `src/bundle.ts` makes the page fast. The export inlines every photo as
+  base64, about 2.2 MB of a 3.3 MB file, so nothing would show until all of it
+  downloaded. The router moves each photo out to `/<path>/_img/…`, which
+  `netlify/edge-functions/lp-asset.ts` serves with a year of caching. It points
+  the page at Netlify Image CDN copies (AVIF/WebP, never wider than the original)
+  with `srcset`, `loading="lazy"` and `decoding="async"`, and preloads the hero
+  background. The page HTML drops to about 200 KB over the wire. If the export
+  format ever changes and the rewrite can't apply, the page is served as exported.
 - `public/_redirects` sends everything that isn't a page to the store.
 
 The page designs themselves carry no tracking code. Changing the snippet here
@@ -55,5 +63,5 @@ and shouldn't compete with keptcollection.com in search.
 ## Test
 
 ```sh
-node --experimental-strip-types --test test/router.test.ts
+node --experimental-strip-types --test test/router.test.ts test/bundle.test.ts
 ```
