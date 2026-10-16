@@ -26,6 +26,10 @@ export const LANDING_PAGES: Record<string, LandingPage> = {
     name: "Gift for a new mom",
     videos: ["/media/gift-new-mom/hero-4057d3e3.mp4"],
   },
+  "older-kids": {
+    origin: "https://kept-lp-kids-past-the-baby-stage-cd-0345a20498.netlify.app",
+    name: "Kids past the baby stage (catch-up b)",
+  },
 };
 
 // Where a visitor goes if a page can't be loaded, so an ad click never dead-ends.
