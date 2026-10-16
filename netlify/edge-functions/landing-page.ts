@@ -8,6 +8,10 @@ const VIEWPORT_META = '<meta name="viewport" content="width=device-width, initia
 const FONT_PRECONNECT =
   '<link rel="preconnect" href="https://fonts.googleapis.com">' +
   '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>';
+// The Kept "k" from the store (public/favicon.png), so every page has a tab icon.
+const FAVICON =
+  '<link rel="icon" type="image/png" href="/favicon.png">' +
+  '<link rel="apple-touch-icon" href="/favicon.png">';
 
 // Netlify appends a "Powered by Netlify" badge script to pages on each design's
 // own site (Project configuration > General > Powered by Netlify badge). It has
@@ -58,11 +62,14 @@ export default async (request: Request, context: Context) => {
   // the page as a shrunken 980px desktop layout. Add one unless the page has it.
   const hasViewport = /<meta[^>]+name=["']?viewport/i.test(body.slice(0, 20000));
   const usesGoogleFonts = body.includes("fonts.googleapis.com");
+  // Design exports don't carry a favicon either. Use the store's unless the page has one.
+  const hasIcon = /<link[^>]+rel=["']?[^"'>]*\bicon\b/i.test(body.slice(0, 20000));
   const extras =
     (hasViewport ? "" : VIEWPORT_META) +
     (usesGoogleFonts ? FONT_PRECONNECT : "") +
     preloads +
-    trackingSnippet({ pixelId: META_PIXEL_ID, lp: slug });
+    trackingSnippet({ pixelId: META_PIXEL_ID, lp: slug }) +
+    (hasIcon ? "" : FAVICON);
 
   return new Response(injectIntoHead(body, extras), {
     status: 200,
@@ -82,7 +89,7 @@ export default async (request: Request, context: Context) => {
 
 export const config: Config = {
   path: ["/:slug", "/:slug/"],
-  excludedPath: ["/robots.txt", "/favicon.ico"],
+  excludedPath: ["/robots.txt", "/favicon.ico", "/favicon.png"],
   cache: "manual",
   // If this function ever errors, skip it: _redirects sends the visitor to the store.
   onError: "bypass",

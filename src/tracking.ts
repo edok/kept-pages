@@ -3,7 +3,8 @@
 // change here reaches all of them on the next push.
 //
 // What it does in the visitor's browser:
-//  0. Keeps a mobile viewport tag on the page (see ensureViewport).
+//  0. Keeps a mobile viewport tag and the Kept favicon on the page (see
+//     ensureViewport, ensureFavicon).
 //  1. Loads the Meta pixel and fires PageView.
 //  2. When someone clicks a link to keptcollection.com, copies the ad and
 //     attribution params from the landing page URL (utm_*, fbclid, trybe, ...)
@@ -22,6 +23,15 @@ export function trackingSnippet(opts: { pixelId: string; lp: string }): string {
     m.content = 'width=device-width, initial-scale=1';
     (document.head || document.documentElement).appendChild(m);
   }
+  // Same for the favicon: the head swap drops the icon link the router added.
+  function ensureFavicon() {
+    if (document.querySelector('link[rel~="icon"]')) return;
+    var l = document.createElement('link');
+    l.rel = 'icon';
+    l.type = 'image/png';
+    l.href = '/favicon.png';
+    (document.head || document.documentElement).appendChild(l);
+  }
   // Decorative loop videos (aria-hidden, like a video hero) must be muted and
   // inline to autoplay on phones. The design sets this too; this is the backup.
   function ensureVideos() {
@@ -35,7 +45,7 @@ export function trackingSnippet(opts: { pixelId: string; lp: string }): string {
       if (v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
     }
   }
-  function onChange() { ensureViewport(); ensureVideos(); }
+  function onChange() { ensureViewport(); ensureFavicon(); ensureVideos(); }
   onChange();
   if (window.MutationObserver) {
     var mo = new MutationObserver(onChange);

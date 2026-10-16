@@ -40,6 +40,19 @@ test("doesn't add a second viewport tag when the page already has one", async ()
   assert.equal(html.match(/<meta name="viewport"/g)?.length, 1);
 });
 
+test("adds the Kept favicon unless the page has its own", async () => {
+  mockFetch(200);
+  let res = (await handler(new Request("https://go.keptcollection.com/new-baby"), ctx("new-baby"))) as Response;
+  let html = await res.text();
+  assert.match(html, /<link rel="icon" type="image\/png" href="\/favicon.png">/);
+  assert.match(html, /function ensureFavicon\(\)/);
+
+  mockFetch(200, LP_HTML.replace("<title>", '<link rel="icon" href="/own.png"><title>'));
+  res = (await handler(new Request("https://go.keptcollection.com/new-baby"), ctx("new-baby"))) as Response;
+  html = await res.text();
+  assert.ok(!html.includes('href="/favicon.png">'));
+});
+
 test("slug is case-insensitive and falls back to the path when params are missing", async () => {
   mockFetch(200);
   const res = await handler(new Request("https://go.keptcollection.com/New-Baby/"), ctx());

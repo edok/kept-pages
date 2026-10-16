@@ -18,3 +18,9 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     X-Robots-Tag = "noindex"
+
+# Kept favicon for every landing page (added to each page by the router).
+[[headers]]
+  for = "/favicon.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
