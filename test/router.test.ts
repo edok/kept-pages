@@ -83,3 +83,16 @@ test("network failure also falls back to the product page", async () => {
   const res = (await handler(new Request("https://go.keptcollection.com/new-baby"), ctx("new-baby"))) as Response;
   assert.equal(res.status, 302);
 });
+
+test("look-inside is served from the static copy in this repo, tracking added", async () => {
+  let asked = "";
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    asked = String(input);
+    return new Response(LP_HTML, { status: 200 });
+  }) as typeof fetch;
+  const res = (await handler(new Request("https://go.keptcollection.com/look-inside?utm_source=zigpoll"), ctx("look-inside"))) as Response;
+  assert.equal(res.status, 200);
+  assert.equal(asked, "https://go.keptcollection.com/pages/look-inside/");
+  const html = await res.text();
+  assert.match(html, /\{"pixelId":"2658218640937959","lp":"look-inside"\}/);
+});

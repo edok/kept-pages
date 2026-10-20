@@ -19,6 +19,14 @@
     Cache-Control = "public, max-age=31536000, immutable"
     X-Robots-Tag = "noindex"
 
+# Pages kept in this repo as plain HTML (public/pages/<page>/), served through
+# the router like a design export. Their images don't change names, so a day.
+[[headers]]
+  for = "/pages/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    X-Robots-Tag = "noindex"
+
 # Kept favicon for every landing page (added to each page by the router).
 [[headers]]
   for = "/favicon.png"

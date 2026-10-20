@@ -40,6 +40,14 @@ export const LANDING_PAGES: Record<string, LandingPage> = {
     origin: "https://kept-lp-gift-for-parents-of-older-kids-cd-ea3e78dfea.netlify.app",
     name: "Gift for parents of older kids",
   },
+  // The whole book, page by page (linked from the product page's exit pop-up).
+  // Not a design export: 232 page images are too many to inline, so the page is
+  // plain HTML kept in this repo (public/pages/look-inside/) and the router
+  // serves it like any other page. Rebuilt from the "Kept look inside" canvas.
+  "look-inside": {
+    origin: "https://go.keptcollection.com/pages/look-inside",
+    name: "Look inside (flip-through)",
+  },
 };
 
 // Where a visitor goes if a page can't be loaded, so an ad click never dead-ends.
