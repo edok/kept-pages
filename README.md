@@ -5,6 +5,16 @@ Serves Kept's landing pages on **go.keptcollection.com**, one page per path:
 | Path | Page | Netlify site |
 | --- | --- | --- |
 | `/new-baby` | New baby + big siblings (catch-up a) | `cd-5cab7041bb-c09ab7` |
+| `/gift-new-mom` | Gift for a new mom | `kept-lp-gift-for-new-moms-cd-fd88715920` |
+| `/older-kids` | Kids past the baby stage (catch-up b) | `kept-lp-kids-past-the-baby-stage-cd-0345a20498` |
+| `/new-mom` | New mom buying for herself | `kept-lp-new-mom-buying-for-herself-cd-55fbfeb0ce` |
+| `/gift-older-kids` | Gift for parents of older kids | `kept-lp-gift-for-parents-of-older-kids-cd-ea3e78dfea` |
+| `/look-inside` | The whole book, page by page | this repo: `public/pages/look-inside/` |
+
+`/look-inside` isn't a design export: its 232 page images are too many to inline
+in one bundle, so it's plain HTML in `public/pages/look-inside/`, rebuilt from
+the "Kept look inside" canvas, and the router serves it the same way (tracking,
+favicon, noindex, store fallback).
 
 Anything else on the domain (the bare domain, typos, retired pages) redirects to
 keptcollection.com and keeps its query string.
