@@ -36,6 +36,10 @@ export const LANDING_PAGES: Record<string, LandingPage> = {
     // Same pregnant-mom clip as the gift page.
     videos: ["/media/gift-new-mom/hero-4057d3e3.mp4"],
   },
+  "gift-older-kids": {
+    origin: "https://kept-lp-gift-for-parents-of-older-kids-cd-ea3e78dfea.netlify.app",
+    name: "Gift for parents of older kids",
+  },
 };
 
 // Where a visitor goes if a page can't be loaded, so an ad click never dead-ends.
