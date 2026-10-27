@@ -1,7 +1,7 @@
 // Run: node --experimental-strip-types --test test/
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractAsset, imageSize, optimizeBundle } from "../src/bundle.ts";
+import { extractAsset, imageSize, optimizeBundle, preloadReact } from "../src/bundle.ts";
 import landingPage from "../netlify/edge-functions/landing-page.ts";
 import lpAsset from "../netlify/edge-functions/lp-asset.ts";
 
@@ -146,4 +146,38 @@ test("edge functions: page is optimized; photo URL serves bytes with a year of c
 
   const bad = (await lpAsset(new Request("https://go.keptcollection.com/new-baby/_img/nope.jpg"), { params: { slug: "new-baby", file: "nope.jpg" } } as any)) as Response;
   assert.equal(bad.status, 404);
+});
+
+test("React and ReactDOM load ahead of the page scripts, from the copies already in the bundle", () => {
+  const REACT = "eeeeeeee-5555-4555-8555-eeeeeeeeeeee";
+  const DOM = "ffffffff-6666-4666-8666-ffffffffffff";
+  const RUNTIME = "99999999-7777-4777-8777-999999999999";
+  const man = {
+    ...manifest,
+    [REACT]: { mime: "text/javascript", compressed: true, data: "AAAA" },
+    [DOM]: { mime: "text/javascript", compressed: true, data: "AAAA" },
+    [RUNTIME]: { mime: "text/javascript", compressed: true, data: "AAAA" },
+  };
+  const tpl = templateHtml.replace("<title>LP</title>", `<title>LP</title><script src="${RUNTIME}"></script>`);
+  const ext = [
+    { id: "https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js", uuid: REACT },
+    { id: "https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js", uuid: DOM },
+  ];
+  const html = BUNDLE
+    .replace(JSON.stringify(manifest), JSON.stringify(man))
+    .replace('<script type="__bundler/ext_resources">[]', `<script type="__bundler/ext_resources">${JSON.stringify(ext)}`)
+    .replace(JSON.stringify(templateHtml).replace(/<\//g, "<\\u002F"), JSON.stringify(tpl).replace(/<\//g, "<\\u002F"));
+  const out = preloadReact(html);
+  assert.ok(out);
+  const page = runLoader(out);
+  const order = [...page.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ["blob:test/eeee", "blob:test/ffff", "blob:test/9999"]);
+  assert.equal(preloadReact(out), null, "running it twice changes nothing");
+  // Still works after the photo rewrite.
+  const both = preloadReact(optimizeBundle(html, { slug: "older-kids", origin: "https://go.keptcollection.com" })!.html);
+  assert.ok(both && runLoader(both).indexOf("blob:test/eeee") < runLoader(both).indexOf("blob:test/9999"));
+});
+
+test("pages without React in the bundle are left alone", () => {
+  assert.equal(preloadReact(BUNDLE), null);
 });
