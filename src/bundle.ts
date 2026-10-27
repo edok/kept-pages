@@ -170,6 +170,53 @@ export function optimizeBundle(html: string, opts: { slug: string; origin: strin
   return { html: out, preloads, moved };
 }
 
+// React has to exist before the page's design-system bundle runs.
+//
+// The export ships React and ReactDOM inside the manifest (listed in
+// <script type="__bundler/ext_resources"> under their CDN URLs), but the page
+// itself only has two scripts: the dc-runtime, which *starts* loading React by
+// appending its own <script> tags, and then the design-system bundle
+// (`var __KeptBundle=…`), which reads `window.React` once, the moment it runs.
+// The loader inserts that bundle as soon as the runtime has loaded, so the two
+// race: when the bundle wins (it does on some iPhones, e.g. in Instagram's
+// in-app browser), every component holds `undefined` instead of React and the
+// page dies with "undefined is not an object (evaluating 'g.default.useState')".
+//
+// Fix: put React and ReactDOM at the top of the page's <head> as ordinary
+// scripts, by uuid. The loader swaps those uuids for its blob: URLs and runs
+// scripts strictly in order, waiting for each to load, so React and ReactDOM
+// are on window before the runtime (which then skips its own load) and before
+// the bundle. Nothing is downloaded twice: they're the copies already inside.
+const EXT_RESOURCES_TAG = '<script type="__bundler/ext_resources">';
+const REACT_URL = /\/react@[^/]+\/umd\/react\.[^/]*\.js$/;
+const REACT_DOM_URL = /\/react-dom@[^/]+\/umd\/react-dom\.[^/]*\.js$/;
+
+export function preloadReact(html: string): string | null {
+  const e = scriptBody(html, EXT_RESOURCES_TAG);
+  const m = scriptBody(html, MANIFEST_TAG);
+  const t = scriptBody(html, TEMPLATE_TAG);
+  if (!e || !m || !t || t.start < m.end) return null;
+
+  const ext = JSON.parse(html.slice(e.start, e.end)) as Array<{ id: string; uuid: string }>;
+  const react = ext.find((r) => REACT_URL.test(r.id))?.uuid;
+  const reactDom = ext.find((r) => REACT_DOM_URL.test(r.id))?.uuid;
+  if (!react || !reactDom) return null;
+  // Both copies must still be in the manifest, or the loader has nothing to swap in.
+  const manifestText = html.slice(m.start, m.end);
+  if (!manifestText.includes(`"${react}"`) || !manifestText.includes(`"${reactDom}"`)) return null;
+
+  let template = JSON.parse(html.slice(t.start, t.end)) as string;
+  if (template.includes(`src="${react}"`)) return null; // already done
+  const firstScript = template.search(/<script\b/i);
+  const headOpen = template.match(/<head[^>]*>/i);
+  const at = firstScript >= 0 ? firstScript : headOpen ? (headOpen.index ?? 0) + headOpen[0].length : -1;
+  if (at < 0) return null;
+  template = template.slice(0, at) + `<script src="${react}"></script><script src="${reactDom}"></script>` + template.slice(at);
+
+  const json = JSON.stringify(template).replace(/</g, "\\u003c");
+  return html.slice(0, t.start) + json + html.slice(t.end);
+}
+
 // Pull one image out of a bundle for lp-asset.ts.
 export async function extractAsset(html: string, uuid: string): Promise<{ mime: string; bytes: Uint8Array } | null> {
   const m = scriptBody(html, MANIFEST_TAG);

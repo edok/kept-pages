@@ -1,5 +1,5 @@
 import type { Config, Context } from "@netlify/edge-functions";
-import { optimizeBundle } from "../../src/bundle.ts";
+import { optimizeBundle, preloadReact } from "../../src/bundle.ts";
 import { LANDING_PAGES, META_PIXEL_ID, STORE_FALLBACK } from "../../src/lps.ts";
 import { injectIntoHead, trackingSnippet } from "../../src/tracking.ts";
 import { fetchPageHtml } from "../../src/upstream.ts";
@@ -56,6 +56,12 @@ export default async (request: Request, context: Context) => {
   } catch (err) {
     // A bundle format we don't recognize: serve it as exported (heavier, but whole).
     console.error(`[lp] ${slug}: could not optimize bundle`, err);
+  }
+  try {
+    // Load React before the page's scripts so they can't race it (see src/bundle.ts).
+    body = preloadReact(body) ?? body;
+  } catch (err) {
+    console.error(`[lp] ${slug}: could not move React ahead of the page scripts`, err);
   }
 
   // Claude Design exports ship without a viewport tag, so phones would render
