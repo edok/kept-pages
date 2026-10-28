@@ -1,3 +1,5 @@
 .netlify
 node_modules
 .DS_Store
+public/_commit.txt
+smoke/summary.md

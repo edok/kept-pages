@@ -74,7 +74,7 @@ export default async (request: Request, context: Context) => {
     (hasViewport ? "" : VIEWPORT_META) +
     (usesGoogleFonts ? FONT_PRECONNECT : "") +
     preloads +
-    trackingSnippet({ pixelId: META_PIXEL_ID, lp: slug }) +
+    trackingSnippet({ pixelId: META_PIXEL_ID, lp: slug, fallback: STORE_FALLBACK }) +
     (hasIcon ? "" : FAVICON);
 
   return new Response(injectIntoHead(body, extras), {
