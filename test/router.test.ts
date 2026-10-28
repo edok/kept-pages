@@ -18,7 +18,7 @@ test("serves a known page with the pixel injected at the top of <head>", async (
   const html = await res.text();
   assert.match(html, /<head><meta name="viewport" content="width=device-width, initial-scale=1"><script>\/\* Kept LP tracking/);
   assert.match(html, /fbq\('init', cfg\.pixelId\)/);
-  assert.match(html, /\{"pixelId":"2658218640937959","lp":"new-baby"\}/);
+  assert.match(html, /\{"pixelId":"2658218640937959","lp":"new-baby","fallback":"https:\/\/keptcollection\.com\/products\/childhood-a-history","guard":\{/);
   assert.ok(html.indexOf("Kept LP tracking") < html.indexOf("<meta charset"));
   assert.equal(res.headers.get("x-robots-tag"), "noindex");
   assert.equal(res.headers.get("netlify-vary"), "query=v");
@@ -94,5 +94,18 @@ test("look-inside is served from the static copy in this repo, tracking added", 
   assert.equal(res.status, 200);
   assert.equal(asked, "https://go.keptcollection.com/pages/look-inside/");
   const html = await res.text();
-  assert.match(html, /\{"pixelId":"2658218640937959","lp":"look-inside"\}/);
+  assert.match(html, /\{"pixelId":"2658218640937959","lp":"look-inside","fallback":"https:\/\/keptcollection\.com\/products\/childhood-a-history"/);
+});
+
+test("adds the error guard: LPError, LPBlank, the store fallback and ?lpdebug", async () => {
+  mockFetch(200);
+  const res = (await handler(new Request("https://go.keptcollection.com/older-kids"), ctx("older-kids"))) as Response;
+  const html = await res.text();
+  assert.match(html, /trackCustom', name, data\)/);
+  assert.match(html, /send\('LPError'/);
+  assert.match(html, /send\('LPBlank'/);
+  assert.match(html, /params\.has\('lpdebug'\)/);
+  assert.match(html, /"guard":\{"afterErrorMs":4000,"stuckMs":20000,"pollMs":2000,"maxErrors":3\}/);
+  // The guard sits inside the tracking script, so it's in place before the page's own scripts run.
+  assert.ok(html.indexOf("function guard(g)") < html.indexOf("<meta charset"));
 });

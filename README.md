@@ -53,6 +53,36 @@ changes it on every page at the next deploy.
 anything but a 200, the visitor is redirected to the product page with their params.
 If the function itself errors, the visitor falls through to the store redirect.
 
+**Errors and blank pages.** The tracking snippet also guards the page in the
+visitor's browser (`guard()` in `src/tracking.ts`):
+
+- Every script error is sent to the pixel as a custom `LPError` event
+  (`lp`, a short message, and whether it was an error or a failed promise),
+  at most 3 per page view. In Events Manager it sits next to `LPClick`.
+- The export draws script errors in a red box at the bottom of the page. The
+  guard hides it, since shoppers shouldn't see it.
+- If the page hasn't drawn itself (a link to the store or a real amount of
+  text) 4 seconds after loading and there was a script error, or after 20
+  seconds with no error, the guard fires `LPBlank` and sends the visitor to the
+  product page with all their params plus `lp=<page>` and `lpf=error` or
+  `lpf=stuck`, so Shopify shows how many came that way.
+- Add `?lpdebug=1` to a page to see its errors on screen and skip the redirect.
+
+**Checks.** `.github/workflows/lp-checks.yml` runs `smoke/check-pages.ts`, which
+loads every page in iPhone Safari's engine (WebKit) and in Chrome on Android,
+with the pixel stubbed out and the store never contacted:
+
+- on every pull request, against its deploy preview, so a broken change
+  can't be merged;
+- after every merge, and each morning at 7:17 am Pacific, against
+  go.keptcollection.com. A failure opens an issue labeled `lp-check` (or adds to
+  the open one), which notifies the repo owner.
+
+A page fails if it doesn't draw itself with a link to the store, throws a
+script error, trips the guard, or doesn't fire the pixel's PageView. The run also
+tests the guard on made-up pages and on a real page broken on purpose. Netlify's
+build writes the deployed commit to `/_commit.txt`, which the check waits for.
+
 **Caching.** Netlify's CDN keeps each page for 5 minutes and ignores ad params in
 the cache key. After re-exporting a design, the change is live within 5 minutes; to
 see it right away, open the page with `?v=<anything>`. Every push to this repo
@@ -74,4 +104,6 @@ and shouldn't compete with keptcollection.com in search.
 
 ```sh
 node --experimental-strip-types --test test/router.test.ts test/bundle.test.ts
+# Browser checks (needs Playwright with WebKit and Chromium; KEPT_ENGINES=chromium for one):
+node --experimental-strip-types smoke/check-pages.ts https://go.keptcollection.com
 ```

@@ -1,7 +1,9 @@
 [build]
   publish = "public"
-  # No build step: static files plus edge functions.
-  command = "echo 'no build'"
+  # No real build step: static files plus edge functions. It only writes the
+  # commit being deployed to /_commit.txt, so the GitHub page checks
+  # (.github/workflows/lp-checks.yml) can tell when a deploy has finished.
+  command = "echo \"$COMMIT_REF\" > public/_commit.txt"
 
 # Landing-page photos are served by netlify/edge-functions/lp-asset.ts and
 # resized/converted by Netlify Image CDN, which fetches them by full URL.

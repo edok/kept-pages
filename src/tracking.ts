@@ -9,9 +9,29 @@
 //  2. When someone clicks a link to keptcollection.com, copies the ad and
 //     attribution params from the landing page URL (utm_*, fbclid, trybe, ...)
 //     onto that link, adds lp=<page>, and fires a custom "LPClick" event.
+//  3. Error guard (see guard() below): reports script errors as a custom
+//     "LPError" event, hides the export's red debug box from shoppers, and if
+//     the page never renders, fires "LPBlank" and sends the visitor to the
+//     product page with their params, so a broken page can't waste the click.
 
-export function trackingSnippet(opts: { pixelId: string; lp: string }): string {
-  const cfg = JSON.stringify({ pixelId: opts.pixelId, lp: opts.lp }).replace(/</g, "\\u003c");
+// Guard timings, in ms. Exported for the tests.
+export const GUARD = {
+  // After a script error, how long past the load event the page gets to show
+  // something before the visitor is sent to the store.
+  afterErrorMs: 4000,
+  // With no error at all, how long the page gets in total (from the first
+  // byte of HTML) before an empty page counts as stuck.
+  stuckMs: 20000,
+  // How often the guard looks again while it waits.
+  pollMs: 2000,
+  // Most LPError events one page view can send (one bad loop shouldn't flood the pixel).
+  maxErrors: 3,
+};
+
+// `guard` overrides the timings (the browser checks in smoke/ use shorter ones).
+export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: string; guard?: Partial<typeof GUARD> }): string {
+  const guard = { ...GUARD, ...opts.guard };
+  const cfg = JSON.stringify({ pixelId: opts.pixelId, lp: opts.lp, fallback: opts.fallback ?? "", guard }).replace(/</g, "\\u003c");
   return `<script>/* Kept LP tracking, added by the go.keptcollection.com router */
 (function (cfg) {
   // The Claude Design export unpacks itself and replaces <head>, dropping the
@@ -60,6 +80,93 @@ export function trackingSnippet(opts: { pixelId: string; lp: string }): string {
   document,'script','https://connect.facebook.net/en_US/fbevents.js');
   fbq('init', cfg.pixelId);
   fbq('track', 'PageView');
+
+  // Error guard. Until Oct 27 an iPhone-only crash left some pages blank for
+  // 12 days before a shopper reported it. This makes a crash show up as a
+  // number (LPError in Events Manager) and keeps a broken page from wasting the
+  // click: if the page never renders, LPBlank fires and the visitor goes to the
+  // product page with their params (plus lpf=<reason>, so Shopify shows it).
+  // Add ?lpdebug=1 to a page to see errors on screen and skip the redirect.
+  // Wrapped so a problem in the guard can never stop the link tagging below it.
+  try { (function guard(g) {
+    var t0 = Date.now();
+    var params = new URLSearchParams(window.location.search);
+    var debug = params.has('lpdebug');
+    var errors = 0, sent = 0, done = false, loadedAt = 0;
+    function send(name, data) { try { fbq('trackCustom', name, data); } catch (err) {} }
+    // The export draws script errors in a red box at the bottom of the page.
+    // Useful in Claude Design, not for shoppers.
+    function hideDebugBox() {
+      if (debug) return;
+      var d = document.getElementById('__bundler_err');
+      if (d) d.style.display = 'none';
+    }
+    function report(where, msg, fatal) {
+      if (fatal) errors++;
+      if (sent >= g.maxErrors) return;
+      sent++;
+      send('LPError', { lp: cfg.lp, where: where, msg: String(msg || '').replace(/\\s+/g, ' ').slice(0, 120) });
+    }
+    window.addEventListener('error', function (e) {
+      // A failed image or script download fires at the element with no message: not a crash.
+      if (!e.message && !e.error) return;
+      setTimeout(hideDebugBox, 0);
+      var msg = e.message || (e.error && e.error.message) || '';
+      // Errors from other origins (the pixel, browser extensions) arrive as a bare
+      // "Script error." with nothing to act on; ResizeObserver warnings are harmless.
+      if (/^Script error\\.?$/.test(msg) || /ResizeObserver loop/i.test(msg)) return;
+      report('error', msg, true);
+    }, true);
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason;
+      report('rejection', r && r.message ? r.message : r, false);
+    });
+
+    // Has the page drawn itself? A link to the store or a real amount of text
+    // counts; the export's own "Loading…" placeholder and error box don't.
+    function rendered() {
+      if (document.querySelector('a[href*="//keptcollection.com"], a[href*="//www.keptcollection.com"]')) return true;
+      var b = document.body;
+      if (!b) return false;
+      var text = b.innerText || b.textContent || '';
+      ['__bundler_err', '__bundler_loading', '__bundler_placeholder'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) text = text.split(el.innerText || el.textContent || '').join('');
+      });
+      return text.replace(/\\s+/g, ' ').trim().length >= 80;
+    }
+    // The export's loader writes "Error …" into its status line when it can't unpack.
+    function loaderFailed() {
+      var l = document.getElementById('__bundler_loading');
+      return !!(l && /^\\s*Error/i.test(l.textContent || ''));
+    }
+    function fallback(reason) {
+      if (done) return;
+      done = true;
+      send('LPBlank', { lp: cfg.lp, reason: reason, errors: errors, secs: Math.round((Date.now() - t0) / 1000) });
+      if (debug || !cfg.fallback) return;
+      var to;
+      try { to = new URL(cfg.fallback); } catch (err) { return; }
+      params.forEach(function (v, k) { to.searchParams.set(k, v); });
+      to.searchParams.set('lp', cfg.lp);
+      to.searchParams.set('lpf', reason);
+      // A moment for the LPBlank request to leave before the page changes.
+      setTimeout(function () { window.location.replace(to.toString()); }, 400);
+    }
+    function check() {
+      if (done) return;
+      if (rendered()) { done = true; return; }
+      if (!errors && loaderFailed()) report('loader', (document.getElementById('__bundler_loading') || {}).textContent, true);
+      var now = Date.now();
+      // A script error and still nothing on screen: the page has crashed.
+      if (errors && (loadedAt ? now - loadedAt >= g.afterErrorMs : now - t0 >= g.stuckMs / 2)) return fallback('error');
+      // No error, but nothing after this long: stuck. (Not while the HTML is still arriving.)
+      if (now - t0 >= g.stuckMs && document.readyState !== 'loading') return fallback('stuck');
+      setTimeout(check, g.pollMs);
+    }
+    window.addEventListener('load', function () { loadedAt = Date.now(); });
+    setTimeout(check, g.pollMs);
+  })(cfg.guard); } catch (err) {}
 
   var KEEP = /^(utm_[a-z_]+|fbclid|gclid|gbraid|wbraid|ttclid|msclkid|trybe)$/i;
   var here = new URLSearchParams(window.location.search);

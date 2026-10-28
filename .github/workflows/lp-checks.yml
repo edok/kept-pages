@@ -1,0 +1,101 @@
+# Landing page checks (see smoke/check-pages.ts).
+#
+# - On every pull request: the unit tests, then the browser checks against the
+#   PR's Netlify deploy preview, so a broken page or router change can't be merged.
+# - After every merge to main, and every morning: the browser checks against
+#   go.keptcollection.com. If they fail, an issue is opened (or updated) with
+#   the label "lp-check", which notifies the repo owner.
+name: Landing page checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 14 * * *" # 7:17 am Pacific in summer time, 6:17 am in winter
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: lp-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --experimental-strip-types --test test/router.test.ts test/bundle.test.ts
+
+  pages:
+    needs: unit
+    # Pinned: Playwright 1.56 has no WebKit build for ubuntu-latest (26.04) yet.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright with WebKit (iPhone Safari's engine) and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.0
+          npx playwright install --with-deps webkit chromium
+
+      - name: Pick the site to check and wait for its deploy
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          WANT: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            BASE="https://deploy-preview-$PR--kept-pages.netlify.app"
+          else
+            BASE="https://go.keptcollection.com"
+          fi
+          echo "BASE=$BASE" >> "$GITHUB_ENV"
+          # The morning run checks whatever is live; the others wait for this commit's deploy.
+          if [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then exit 0; fi
+          for i in $(seq 1 60); do
+            GOT=$(curl -fsS "$BASE/_commit.txt?t=$(date +%s)" 2>/dev/null | tr -d '[:space:]' || true)
+            if [ "$GOT" = "$WANT" ]; then echo "Deploy of $WANT is live on $BASE"; exit 0; fi
+            echo "Waiting for $WANT on $BASE (have: ${GOT:-nothing})"
+            sleep 15
+          done
+          echo "::error::The deploy of $WANT never showed up on $BASE"
+          exit 1
+
+      - name: Check every page in iPhone Safari and Android Chrome
+        run: node --experimental-strip-types smoke/check-pages.ts "$BASE"
+
+      - name: Summary
+        if: always()
+        run: test -f smoke/summary.md && cat smoke/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Open or update an issue when the live pages fail
+        if: failure() && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          gh label create lp-check --color B60205 --description "Landing page check failed" --force
+          {
+            echo "@$OWNER the landing page checks failed on $BASE."
+            echo
+            if [ -f smoke/summary.md ]; then cat smoke/summary.md; else echo "The checks didn't get far enough to write a summary."; fi
+            echo
+            echo "Run: $RUN_URL"
+          } > body.md
+          NUM=$(gh issue list --label lp-check --state open --json number --jq '.[0].number')
+          if [ -n "$NUM" ]; then
+            gh issue comment "$NUM" --body-file body.md
+          else
+            gh issue create --title "Landing page check failed" --label lp-check --body-file body.md
+          fi
