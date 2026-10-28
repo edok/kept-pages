@@ -87,7 +87,8 @@ export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: 
   // click: if the page never renders, LPBlank fires and the visitor goes to the
   // product page with their params (plus lpf=<reason>, so Shopify shows it).
   // Add ?lpdebug=1 to a page to see errors on screen and skip the redirect.
-  (function guard(g) {
+  // Wrapped so a problem in the guard can never stop the link tagging below it.
+  try { (function guard(g) {
     var t0 = Date.now();
     var params = new URLSearchParams(window.location.search);
     var debug = params.has('lpdebug');
@@ -165,7 +166,7 @@ export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: 
     }
     window.addEventListener('load', function () { loadedAt = Date.now(); });
     setTimeout(check, g.pollMs);
-  })(cfg.guard);
+  })(cfg.guard); } catch (err) {}
 
   var KEEP = /^(utm_[a-z_]+|fbclid|gclid|gbraid|wbraid|ttclid|msclkid|trybe)$/i;
   var here = new URLSearchParams(window.location.search);
