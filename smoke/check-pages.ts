@@ -196,6 +196,20 @@ async function pageChecks(browser: any, label: string, device: any) {
         if (state.links < 1) problems.push("no link to the store");
         if (state.text < 200) problems.push(`only ${state.text} characters of text`);
       }
+      // The store's offer bar (src/ann-bar.ts) is in place of the design's.
+      const bar = await page.evaluate(() => {
+        const all = document.querySelectorAll(".kept-ann");
+        const el = all[0] as HTMLElement | undefined;
+        return {
+          count: all.length,
+          code: (el?.querySelector(".kept-ann__code")?.textContent || "").trim(),
+          copy: !!el?.querySelector("button.kept-ann__copy"),
+          height: Math.round(el?.getBoundingClientRect().height || 0),
+          designShowing: Array.from(document.querySelectorAll("[data-kept-ann-replaced]")).some((e) => getComputedStyle(e).display !== "none"),
+        };
+      }).catch(() => null);
+      if (!bar || bar.count !== 1 || bar.code !== "KEPT25" || !bar.copy || bar.height < 40) problems.push(`offer bar missing or wrong (${JSON.stringify(bar)})`);
+      else if (bar.designShowing) problems.push("the design's old bar is still showing");
       if (ctx.pageErrors.length) problems.push(`script errors: ${ctx.pageErrors.slice(0, 3).join(" | ").slice(0, 300)}`);
       const lpErrors = events(ctx, "LPError");
       if (lpErrors.length && !ctx.pageErrors.length) problems.push(`LPError: ${lpErrors.map((e) => e.msg).join(" | ").slice(0, 300)}`);

@@ -1,4 +1,5 @@
 import type { Config, Context } from "@netlify/edge-functions";
+import { annBarSnippet } from "../../src/ann-bar.ts";
 import { optimizeBundle, preloadReact } from "../../src/bundle.ts";
 import { LANDING_PAGES, META_PIXEL_ID, STORE_FALLBACK } from "../../src/lps.ts";
 import { injectIntoHead, trackingSnippet } from "../../src/tracking.ts";
@@ -75,6 +76,8 @@ export default async (request: Request, context: Context) => {
     (usesGoogleFonts ? FONT_PRECONNECT : "") +
     preloads +
     trackingSnippet({ pixelId: META_PIXEL_ID, lp: slug, fallback: STORE_FALLBACK }) +
+    // The store's offer bar in place of the design's (see src/ann-bar.ts).
+    annBarSnippet({ lp: slug }) +
     (hasIcon ? "" : FAVICON);
 
   return new Response(injectIntoHead(body, extras), {

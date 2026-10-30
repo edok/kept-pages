@@ -44,6 +44,14 @@ small router site that owns the domain:
   with `srcset`, `loading="lazy"` and `decoding="async"`, and preloads the hero
   background. The page HTML drops to about 200 KB over the wire. If the export
   format ever changes and the rewrite can't apply, the page is served as exported.
+- `src/ann-bar.ts` is the offer bar at the top of every page: the same three
+  lines, type and copy icon as the announcement bar on keptcollection.com. It
+  hides the bar the design drew (the one holding the code) and puts this one in
+  its place, so a wording change is one edit in `ANN_BAR` and reaches every page,
+  look-inside included. The first line is listed by date and switches on its
+  own (e.g. "Fall sale ends soon!" until midnight Oct 31 ET, then "Holiday Sale
+  is Live!"). The icon only copies the code (the shopper still pastes it and
+  hits Apply at checkout); each copy fires a custom `LPCopyCode` pixel event.
 - `public/_redirects` sends everything that isn't a page to the store.
 
 The page designs themselves carry no tracking code. Changing the snippet here
