@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import handler from "../netlify/edge-functions/landing-page.ts";
+import { ANN_BAR } from "../src/ann-bar.ts";
 
 const LP_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>LP</title></head><body><a href="https://keptcollection.com/products/childhood-a-history">Start</a></body></html>`;
 
@@ -108,4 +109,29 @@ test("adds the error guard: LPError, LPBlank, the store fallback and ?lpdebug", 
   assert.match(html, /"guard":\{"afterErrorMs":4000,"stuckMs":20000,"pollMs":2000,"maxErrors":3\}/);
   // The guard sits inside the tracking script, so it's in place before the page's own scripts run.
   assert.ok(html.indexOf("function guard(g)") < html.indexOf("<meta charset"));
+});
+
+test("adds the store's offer bar (dated first line, code, copy icon) to every page", async () => {
+  mockFetch(200);
+  const res = (await handler(new Request("https://go.keptcollection.com/older-kids"), ctx("older-kids"))) as Response;
+  const html = await res.text();
+  assert.match(html, /<script>\/\* Kept LP offer bar/);
+  assert.ok(html.indexOf("Kept LP tracking") < html.indexOf("Kept LP offer bar"));
+  assert.ok(html.includes('"lp":"older-kids"'));
+  assert.ok(html.includes('"code":"KEPT25"'));
+  for (const h of ANN_BAR.headlines) assert.ok(html.includes(JSON.stringify(h.text)), h.text);
+  assert.match(html, /kept-ann__copy/);
+  // The config is embedded in a <script>: no raw "<" may end up inside it.
+  const cfg = html.slice(html.indexOf("Kept LP offer bar"));
+  assert.ok(!/\}\)\(\{[^\n]*<\/style>/.test(cfg));
+});
+
+test("offer bar headlines are in date order and only the last one has no end", () => {
+  const hs = ANN_BAR.headlines;
+  assert.ok(hs.length >= 1);
+  assert.equal(hs[hs.length - 1].until, undefined);
+  for (let i = 0; i < hs.length - 1; i++) {
+    assert.ok(hs[i].until && !Number.isNaN(Date.parse(hs[i].until!)), `headline ${i} needs a valid until`);
+    if (i > 0) assert.ok(Date.parse(hs[i].until!) > Date.parse(hs[i - 1].until!));
+  }
 });
