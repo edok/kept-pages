@@ -52,6 +52,11 @@ small router site that owns the domain:
   own (e.g. "Fall sale ends soon!" until midnight Oct 31 ET, then "Holiday Sale
   is Live!"). The icon only copies the code (the shopper still pastes it and
   hits Apply at checkout); each copy fires a custom `LPCopyCode` pixel event.
+  While `SALE_TEST` is on, the first line is the store's sale-name test instead:
+  each visitor gets "Holiday Sale is Live!" or "Black Friday Sale is Live!" at
+  random, kept in the `kept_sale` cookie on keptcollection.com (shared with the
+  store), and every store link carries `ks=h` or `ks=b` so the store's
+  Intelligems test puts them in the matching group.
 - `public/_redirects` sends everything that isn't a page to the store.
 
 The page designs themselves carry no tracking code. Changing the snippet here

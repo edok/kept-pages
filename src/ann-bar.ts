@@ -13,13 +13,31 @@ export const ANN_BAR = {
   headlines: [
     // The fall sale ends at midnight Oct 31, store time (Eastern).
     { text: "Fall sale ends soon!", until: "2026-11-01T04:00:00Z" },
-    // From Nov 1 the store tests "Holiday Sale is Live!" against "Black Friday
-    // Sale is Live!" in Intelligems. Visitors who arrive from a landing page
-    // (lp= on the URL) are kept in the Holiday group there, so this matches.
-    // When the test picks a winner, change this line to it.
+    // From Nov 1. While SALE_TEST is on, its two names replace this line.
+    // When the test picks a winner, put the winner here and turn SALE_TEST off.
     { text: "Holiday Sale is Live!" },
   ] as { text: string; until?: string }[],
   code: "KEPT25",
+};
+
+// The store's sale-name test (Intelligems, "Sale name v2"), extended to the
+// landing pages so landing-page visitors are in it too. Each visitor gets one
+// name at random, kept in the kept_sale cookie on keptcollection.com (shared
+// with the store, which also writes it for visitors it assigns first), shown
+// in this bar and passed to the store as ks=<arm> on every store link. The
+// store test assigns ks/kept_sale visitors to the matching group, so a visitor
+// sees the same name on the landing page, in the store bar, by the price and
+// in the cart. Set to null to stop (the dated headline above applies again).
+export const SALE_TEST: {
+  from: string;
+  cookie: string;
+  param: string;
+  arms: Record<string, string>;
+} | null = {
+  from: "2026-11-01T04:00:00Z",
+  cookie: "kept_sale",
+  param: "ks",
+  arms: { h: "Holiday Sale is Live!", b: "Black Friday Sale is Live!" },
 };
 
 const CSS = `
@@ -45,7 +63,7 @@ const CSS = `
 `.replace(/\n/g, "");
 
 export function annBarSnippet(opts: { lp: string }): string {
-  const cfg = JSON.stringify({ lp: opts.lp, headlines: ANN_BAR.headlines, code: ANN_BAR.code, css: CSS }).replace(/</g, "\\u003c");
+  const cfg = JSON.stringify({ lp: opts.lp, headlines: ANN_BAR.headlines, test: SALE_TEST, code: ANN_BAR.code, css: CSS }).replace(/</g, "\\u003c");
   return `<script>/* Kept LP offer bar, added by the go.keptcollection.com router (src/ann-bar.ts) */
 (function (cfg) {
   try {
@@ -53,6 +71,23 @@ export function annBarSnippet(opts: { lp: string }): string {
     for (var i = 0; i < cfg.headlines.length; i++) {
       var h = cfg.headlines[i];
       if (!h.until || now < Date.parse(h.until)) { headline = h.text; break; }
+    }
+
+    // Sale-name test: one name per visitor, shared with the store (see SALE_TEST).
+    var t = cfg.test;
+    if (t && now >= Date.parse(t.from)) {
+      var arm = (document.cookie.match(new RegExp('(?:^|; )' + t.cookie + '=([^;]*)')) || [])[1];
+      if (!t.arms[arm]) {
+        var keys = Object.keys(t.arms);
+        arm = keys[Math.floor(Math.random() * keys.length)];
+      }
+      var host = window.location.hostname;
+      var domain = /(^|\\.)keptcollection\\.com$/i.test(host) ? '; Domain=keptcollection.com' : '';
+      try { document.cookie = t.cookie + '=' + arm + domain + '; Path=/; Max-Age=5184000; SameSite=Lax; Secure'; } catch (err) {}
+      headline = t.arms[arm];
+      // Added to every store link by the tracking snippet (decorate()).
+      window.__keptStoreParams = window.__keptStoreParams || {};
+      window.__keptStoreParams[t.param] = arm;
     }
     var NB = '\\u00a0';
     var SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">';
