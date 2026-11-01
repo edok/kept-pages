@@ -150,6 +150,8 @@ export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: 
       params.forEach(function (v, k) { to.searchParams.set(k, v); });
       to.searchParams.set('lp', cfg.lp);
       to.searchParams.set('lpf', reason);
+      var extra = window.__keptStoreParams || {};
+      for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k) && !to.searchParams.has(k)) to.searchParams.set(k, extra[k]);
       // A moment for the LPBlank request to leave before the page changes.
       setTimeout(function () { window.location.replace(to.toString()); }, 400);
     }
@@ -180,6 +182,13 @@ export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: 
     return null;
   }
 
+  // Extra params other router snippets ask for on store links (e.g. the
+  // sale-name test's ks=<arm>, set by src/ann-bar.ts).
+  function addStoreParams(u) {
+    var extra = window.__keptStoreParams || {};
+    for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k) && !u.searchParams.has(k)) u.searchParams.set(k, extra[k]);
+  }
+
   function decorate(a) {
     if (!a) return null;
     var u;
@@ -188,6 +197,7 @@ export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: 
     if (!toStore) return null;
     here.forEach(function (v, k) { if (KEEP.test(k) && !u.searchParams.has(k)) u.searchParams.set(k, v); });
     if (!u.searchParams.has('lp')) u.searchParams.set('lp', cfg.lp);
+    addStoreParams(u);
     var next = u.toString();
     if (a.href !== next) a.href = next;
     return u;

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import handler from "../netlify/edge-functions/landing-page.ts";
-import { ANN_BAR } from "../src/ann-bar.ts";
+import { ANN_BAR, SALE_TEST } from "../src/ann-bar.ts";
 
 const LP_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>LP</title></head><body><a href="https://keptcollection.com/products/childhood-a-history">Start</a></body></html>`;
 
@@ -134,4 +134,19 @@ test("offer bar headlines are in date order and only the last one has no end", (
     assert.ok(hs[i].until && !Number.isNaN(Date.parse(hs[i].until!)), `headline ${i} needs a valid until`);
     if (i > 0) assert.ok(Date.parse(hs[i].until!) > Date.parse(hs[i - 1].until!));
   }
+});
+
+test("sale-name test: two names, a shared cookie and a store param, all in the served page", async () => {
+  assert.ok(SALE_TEST, "SALE_TEST is on");
+  assert.deepEqual(Object.keys(SALE_TEST!.arms).sort(), ["b", "h"]);
+  assert.ok(!Number.isNaN(Date.parse(SALE_TEST!.from)));
+  mockFetch(200);
+  const res = (await handler(new Request("https://go.keptcollection.com/gift-new-mom"), ctx("gift-new-mom"))) as Response;
+  const html = await res.text();
+  assert.ok(html.includes('"cookie":"kept_sale"'));
+  assert.ok(html.includes('"param":"ks"'));
+  assert.ok(html.includes("Black Friday Sale is Live!"));
+  // The tracking snippet adds the test's param to store links and to the blank-page fallback.
+  assert.match(html, /function addStoreParams\(u\)/);
+  assert.ok((html.match(/__keptStoreParams/g) || []).length >= 3);
 });
