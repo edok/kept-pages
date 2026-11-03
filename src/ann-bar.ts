@@ -13,9 +13,11 @@ export const ANN_BAR = {
   headlines: [
     // The fall sale ends at midnight Oct 31, store time (Eastern).
     { text: "Fall sale ends soon!", until: "2026-11-01T04:00:00Z" },
-    // From Nov 1. While SALE_TEST is on, its two names replace this line.
-    // When the test picks a winner, put the winner here and turn SALE_TEST off.
-    { text: "Holiday Sale is Live!" },
+    // From Nov 1: Black Friday, the name Cody picked after the sale-name test
+    // (Nov 1-3: Holiday 39 orders / $3,800, Black Friday 40 / $4,027, no
+    // difference). Same wording as the store's bar. It stops being true after
+    // Cyber Monday (Nov 30): give it an until and add the next line before then.
+    { text: "Black Friday Sale is here!" },
   ] as { text: string; until?: string }[],
   code: "KEPT25",
 };
@@ -30,17 +32,14 @@ export const ANN_BAR = {
 // in the cart. The pages also count the split with pixel custom events
 // (LPSaleName_, LPSaleNew_ and LPSaleClick_ + h or b; see the snippet).
 // Set to null to stop (the dated headline above applies again).
+// Off since Nov 3 (test ended, Black Friday chosen). To run another name test,
+// set it to e.g. { from, cookie: "kept_sale", param: "ks", arms: { h: "...", b: "..." } }.
 export const SALE_TEST: {
   from: string;
   cookie: string;
   param: string;
   arms: Record<string, string>;
-} | null = {
-  from: "2026-11-01T04:00:00Z",
-  cookie: "kept_sale",
-  param: "ks",
-  arms: { h: "Holiday Sale is Live!", b: "Black Friday Sale is Live!" },
-};
+} | null = null;
 
 const CSS = `
 .kept-ann{display:block!important;box-sizing:border-box;width:100%;margin:0;padding:10px 16px;background:#657686;color:#fff;text-align:center}
