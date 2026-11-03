@@ -136,21 +136,14 @@ test("offer bar headlines are in date order and only the last one has no end", (
   }
 });
 
-test("sale-name test: two names, a shared cookie and a store param, all in the served page", async () => {
-  assert.ok(SALE_TEST, "SALE_TEST is on");
-  assert.deepEqual(Object.keys(SALE_TEST!.arms).sort(), ["b", "h"]);
-  assert.ok(!Number.isNaN(Date.parse(SALE_TEST!.from)));
+test("sale-name test off: every visitor gets the dated line, with no cookie, store param or split events", async () => {
+  assert.equal(SALE_TEST, null);
   mockFetch(200);
   const res = (await handler(new Request("https://go.keptcollection.com/gift-new-mom"), ctx("gift-new-mom"))) as Response;
   const html = await res.text();
-  assert.ok(html.includes('"cookie":"kept_sale"'));
-  assert.ok(html.includes('"param":"ks"'));
-  assert.ok(html.includes("Black Friday Sale is Live!"));
-  // The tracking snippet adds the test's param to store links and to the blank-page fallback.
-  assert.match(html, /function addStoreParams\(u\)/);
-  assert.ok((html.match(/__keptStoreParams/g) || []).length >= 3);
-  // Pixel events that count the split and click-through per name.
-  assert.ok(html.includes("'LPSaleName_' + arm"));
-  assert.ok(html.includes("'LPSaleNew_' + arm"));
-  assert.ok(html.includes("'LPSaleClick_' + window.__keptSaleArm"));
+  assert.ok(html.includes('"test":null'));
+  assert.ok(html.includes("Black Friday Sale is here!"));
+  assert.ok(!html.includes("Holiday Sale is Live!"));
+  // The switch code stays in place for the next test, but does nothing while test is null.
+  assert.match(html, /if \(t && now >= Date\.parse\(t\.from\)\)/);
 });

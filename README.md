@@ -49,10 +49,10 @@ small router site that owns the domain:
   hides the bar the design drew (the one holding the code) and puts this one in
   its place, so a wording change is one edit in `ANN_BAR` and reaches every page,
   look-inside included. The first line is listed by date and switches on its
-  own (e.g. "Fall sale ends soon!" until midnight Oct 31 ET, then "Holiday Sale
-  is Live!"). The icon only copies the code (the shopper still pastes it and
+  own (e.g. "Fall sale ends soon!" until midnight Oct 31 ET, then "Black Friday
+  Sale is here!"). The icon only copies the code (the shopper still pastes it and
   hits Apply at checkout); each copy fires a custom `LPCopyCode` pixel event.
-  While `SALE_TEST` is on, the first line is the store's sale-name test instead:
+  While `SALE_TEST` is on (it was Nov 1-3; off now), the first line is the store's sale-name test instead:
   each visitor gets "Holiday Sale is Live!" or "Black Friday Sale is Live!" at
   random, kept in the `kept_sale` cookie on keptcollection.com (shared with the
   store), and every store link carries `ks=h` or `ks=b` so the store's
