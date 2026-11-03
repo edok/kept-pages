@@ -56,7 +56,9 @@ small router site that owns the domain:
   each visitor gets "Holiday Sale is Live!" or "Black Friday Sale is Live!" at
   random, kept in the `kept_sale` cookie on keptcollection.com (shared with the
   store), and every store link carries `ks=h` or `ks=b` so the store's
-  Intelligems test puts them in the matching group.
+  Intelligems test puts them in the matching group. Pixel custom events count
+  the split on the pages: `LPSaleName_h`/`_b` (every page view), `LPSaleNew_h`/`_b`
+  (a visitor's first name) and `LPSaleClick_h`/`_b` (taps to the store).
 - `public/_redirects` sends everything that isn't a page to the store.
 
 The page designs themselves carry no tracking code. Changing the snippet here
