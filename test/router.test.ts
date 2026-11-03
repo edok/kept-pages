@@ -149,4 +149,8 @@ test("sale-name test: two names, a shared cookie and a store param, all in the s
   // The tracking snippet adds the test's param to store links and to the blank-page fallback.
   assert.match(html, /function addStoreParams\(u\)/);
   assert.ok((html.match(/__keptStoreParams/g) || []).length >= 3);
+  // Pixel events that count the split and click-through per name.
+  assert.ok(html.includes("'LPSaleName_' + arm"));
+  assert.ok(html.includes("'LPSaleNew_' + arm"));
+  assert.ok(html.includes("'LPSaleClick_' + window.__keptSaleArm"));
 });

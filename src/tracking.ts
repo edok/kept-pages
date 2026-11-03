@@ -8,7 +8,8 @@
 //  1. Loads the Meta pixel and fires PageView.
 //  2. When someone clicks a link to keptcollection.com, copies the ad and
 //     attribution params from the landing page URL (utm_*, fbclid, trybe, ...)
-//     onto that link, adds lp=<page>, and fires a custom "LPClick" event.
+//     onto that link, adds lp=<page>, and fires a custom "LPClick" event
+//     (plus "LPSaleClick_<name>" while the sale-name test in src/ann-bar.ts runs).
 //  3. Error guard (see guard() below): reports script errors as a custom
 //     "LPError" event, hides the export's red debug box from shoppers, and if
 //     the page never renders, fires "LPBlank" and sends the visitor to the
@@ -214,6 +215,10 @@ export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: 
     if (!u) return;
     var label = (a.textContent || a.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim().slice(0, 80);
     try { fbq('trackCustom', 'LPClick', { lp: cfg.lp, cta: label, destination: u.pathname }); } catch (err) {}
+    // While the sale-name test runs (src/ann-bar.ts sets __keptSaleArm), the
+    // same click again under the name the page showed, so click-through can
+    // be read per name.
+    try { if (window.__keptSaleArm) fbq('trackCustom', 'LPSaleClick_' + window.__keptSaleArm, { lp: cfg.lp }); } catch (err) {}
   }, true);
 })(${cfg});
 </script>`;

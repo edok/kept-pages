@@ -22,6 +22,7 @@ import { createRequire } from "node:module";
 import { writeFileSync } from "node:fs";
 import { LANDING_PAGES, META_PIXEL_ID, STORE_FALLBACK } from "../src/lps.ts";
 import { trackingSnippet } from "../src/tracking.ts";
+import { SALE_TEST } from "../src/ann-bar.ts";
 
 const require = createRequire(import.meta.url);
 const { chromium, webkit, devices } = require("playwright");
@@ -214,6 +215,16 @@ async function pageChecks(browser: any, label: string, device: any) {
       const lpErrors = events(ctx, "LPError");
       if (lpErrors.length && !ctx.pageErrors.length) problems.push(`LPError: ${lpErrors.map((e) => e.msg).join(" | ").slice(0, 300)}`);
       if (!ctx.calls.some((c) => c[0] === "track" && c[1] === "PageView")) problems.push("pixel PageView not fired");
+      // Sale-name test: this fresh visitor's name is counted once, as a new
+      // visitor too, under the name the bar shows.
+      if (SALE_TEST && Date.now() >= Date.parse(SALE_TEST.from)) {
+        const lead = await page.evaluate(() => (document.querySelector(".kept-ann__lead")?.textContent || "").trim()).catch(() => "");
+        const arm = Object.keys(SALE_TEST.arms).find((k) => SALE_TEST!.arms[k] === lead);
+        const named = ctx.calls.filter((c) => c[0] === "trackCustom" && /^LPSaleName_/.test(c[1])).map((c) => c[1]);
+        const fresh = ctx.calls.filter((c) => c[0] === "trackCustom" && /^LPSaleNew_/.test(c[1])).map((c) => c[1]);
+        if (!arm) problems.push(`bar's first line isn't a test name ("${lead}")`);
+        else if (named.join() !== `LPSaleName_${arm}` || fresh.join() !== `LPSaleNew_${arm}`) problems.push(`sale-name events wrong (${[...named, ...fresh].join(", ") || "none"} for "${lead}")`);
+      }
       record(name, problems.length === 0, problems.join("; ") || `${state?.links} store links, ${state?.text} chars`);
     } catch (err) {
       record(name, false, String(err).slice(0, 200));

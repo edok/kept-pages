@@ -27,7 +27,9 @@ export const ANN_BAR = {
 // in this bar and passed to the store as ks=<arm> on every store link. The
 // store test assigns ks/kept_sale visitors to the matching group, so a visitor
 // sees the same name on the landing page, in the store bar, by the price and
-// in the cart. Set to null to stop (the dated headline above applies again).
+// in the cart. The pages also count the split with pixel custom events
+// (LPSaleName_, LPSaleNew_ and LPSaleClick_ + h or b; see the snippet).
+// Set to null to stop (the dated headline above applies again).
 export const SALE_TEST: {
   from: string;
   cookie: string;
@@ -77,7 +79,8 @@ export function annBarSnippet(opts: { lp: string }): string {
     var t = cfg.test;
     if (t && now >= Date.parse(t.from)) {
       var arm = (document.cookie.match(new RegExp('(?:^|; )' + t.cookie + '=([^;]*)')) || [])[1];
-      if (!t.arms[arm]) {
+      var fresh = !t.arms[arm];
+      if (fresh) {
         var keys = Object.keys(t.arms);
         arm = keys[Math.floor(Math.random() * keys.length)];
       }
@@ -88,6 +91,20 @@ export function annBarSnippet(opts: { lp: string }): string {
       // Added to every store link by the tracking snippet (decorate()).
       window.__keptStoreParams = window.__keptStoreParams || {};
       window.__keptStoreParams[t.param] = arm;
+      // Count the split on the landing pages themselves. One pixel custom
+      // event per name, so Events Manager shows the counts without a
+      // parameter breakdown:
+      //   LPSaleName_<arm>  every page view, by the name it showed
+      //   LPSaleNew_<arm>   a visitor's first name (no kept_sale cookie yet),
+      //                     i.e. the landing pages' own random split
+      // The tracking snippet adds LPSaleClick_<arm> to each LPClick.
+      window.__keptSaleArm = arm;
+      try {
+        if (window.fbq) {
+          window.fbq('trackCustom', 'LPSaleName_' + arm, { lp: cfg.lp });
+          if (fresh) window.fbq('trackCustom', 'LPSaleNew_' + arm, { lp: cfg.lp });
+        }
+      } catch (err) {}
     }
     var NB = '\\u00a0';
     var SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">';
