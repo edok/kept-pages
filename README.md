@@ -50,7 +50,7 @@ small router site that owns the domain:
   its place, so a wording change is one edit in `ANN_BAR` and reaches every page,
   look-inside included. The first line is listed by date and switches on its
   own (e.g. "Fall sale ends soon!" until midnight Oct 31 ET, then "Black Friday
-  Sale is here!"). The icon only copies the code (the shopper still pastes it and
+  Sale is Live!"). The icon only copies the code (the shopper still pastes it and
   hits Apply at checkout); each copy fires a custom `LPCopyCode` pixel event.
   While `SALE_TEST` is on (it was Nov 1-3; off now), the first line is the store's sale-name test instead:
   each visitor gets "Holiday Sale is Live!" or "Black Friday Sale is Live!" at

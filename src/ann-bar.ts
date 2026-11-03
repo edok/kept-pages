@@ -14,10 +14,11 @@ export const ANN_BAR = {
     // The fall sale ends at midnight Oct 31, store time (Eastern).
     { text: "Fall sale ends soon!", until: "2026-11-01T04:00:00Z" },
     // From Nov 1: Black Friday, the name Cody picked after the sale-name test
-    // (Nov 1-3: Holiday 39 orders / $3,800, Black Friday 40 / $4,027, no
-    // difference). Same wording as the store's bar. It stops being true after
-    // Cyber Monday (Nov 30): give it an until and add the next line before then.
-    { text: "Black Friday Sale is here!" },
+    // (Nov 1-3: Holiday 40 orders / $3,899, Black Friday 40 / $4,027, no
+    // difference). Same wording as the store's bar ("is Live!" since Nov 3,
+    // 9:49 AM PT). It stops being true after Cyber Monday (Nov 30): give it an
+    // until and add the next line before then.
+    { text: "Black Friday Sale is Live!" },
   ] as { text: string; until?: string }[],
   code: "KEPT25",
 };
