@@ -142,7 +142,8 @@ test("sale-name test off: every visitor gets the dated line, with no cookie, sto
   const res = (await handler(new Request("https://go.keptcollection.com/gift-new-mom"), ctx("gift-new-mom"))) as Response;
   const html = await res.text();
   assert.ok(html.includes('"test":null'));
-  assert.ok(html.includes("Black Friday Sale is here!"));
+  assert.ok(html.includes("Black Friday Sale is Live!"));
+  assert.ok(!html.includes("Black Friday Sale is here!"));
   assert.ok(!html.includes("Holiday Sale is Live!"));
   // The switch code stays in place for the next test, but does nothing while test is null.
   assert.match(html, /if \(t && now >= Date\.parse\(t\.from\)\)/);
