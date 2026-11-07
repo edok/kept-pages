@@ -92,7 +92,7 @@ const CSS = `
 @media (max-width:374px){.kept-ann--t .kept-ann__text{font-size:12px!important;letter-spacing:.12em!important}}
 .kept-ann--s .kept-ann__text{font-size:11px!important;letter-spacing:.14em!important;line-height:1.7!important}
 .kept-ann--s .kept-ann__head{font-family:"EB Garamond",Garamond,"Times New Roman",serif!important;font-weight:400!important;font-size:20px!important;letter-spacing:0!important;line-height:1.25!important;text-transform:none!important}
-@media (max-width:389px){.kept-ann--s .kept-ann__text{font-size:10.5px!important;letter-spacing:.12em!important}}
+@media (max-width:389px){.kept-ann--s{padding-left:10px;padding-right:10px}.kept-ann--s .kept-ann__text{font-size:10.5px!important;letter-spacing:.12em!important}}
 @media (min-width:760px){.kept-ann--s .kept-ann__text{font-size:12px!important;letter-spacing:.16em!important;line-height:1.6!important}.kept-ann--s br{display:none}.kept-ann--s .kept-ann__head::after{content:"";display:inline-block;width:1px;height:15px;margin:0 18px;background:currentColor;vertical-align:-2px}}
 `.replace(/\n/g, "");
 
