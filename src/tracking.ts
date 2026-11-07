@@ -9,7 +9,8 @@
 //  2. When someone clicks a link to keptcollection.com, copies the ad and
 //     attribution params from the landing page URL (utm_*, fbclid, trybe, ...)
 //     onto that link, adds lp=<page>, and fires a custom "LPClick" event
-//     (plus "LPSaleClick_<name>" while the sale-name test in src/ann-bar.ts runs).
+//     (plus "LPSaleClick_<name>" and "LPBarClick_<version>" while the
+//     sale-name or bar test in src/ann-bar.ts runs).
 //  3. Error guard (see guard() below): reports script errors as a custom
 //     "LPError" event, hides the export's red debug box from shoppers, and if
 //     the page never renders, fires "LPBlank" and sends the visitor to the
@@ -219,6 +220,8 @@ export function trackingSnippet(opts: { pixelId: string; lp: string; fallback?: 
     // same click again under the name the page showed, so click-through can
     // be read per name.
     try { if (window.__keptSaleArm) fbq('trackCustom', 'LPSaleClick_' + window.__keptSaleArm, { lp: cfg.lp }); } catch (err) {}
+    // Same for the bar test (src/ann-bar.ts sets __keptBarArm): click-through per bar version.
+    try { if (window.__keptBarArm) fbq('trackCustom', 'LPBarClick_' + window.__keptBarArm, { lp: cfg.lp }); } catch (err) {}
   }, true);
 })(${cfg});
 </script>`;

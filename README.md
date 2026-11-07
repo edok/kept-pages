@@ -59,6 +59,16 @@ small router site that owns the domain:
   Intelligems test puts them in the matching group. Pixel custom events count
   the split on the pages: `LPSaleName_h`/`_b` (every page view), `LPSaleNew_h`/`_b`
   (a visitor's first name) and `LPSaleClick_h`/`_b` (taps to the store).
+  While `BAR_TEST` is on (from Nov 7, 2026), the bar itself is the store's
+  announcement bar test ("Announcement bar: Tidy vs Serif" in Intelligems): each
+  visitor gets Tidy (`t`: the three lines, first line in Jost Bold, "with code
+  KEPT25") or Serif (`s`: the first line in EB Garamond in sentence case, then
+  "Free shipping · 25% off 2+ books with KEPT25", one row from 760px) at random,
+  kept in the `kept_bar` cookie on keptcollection.com and sent to the store as
+  `kb=t` or `kb=s`. Pixel custom events: `LPBar_t`/`_s` (every page view),
+  `LPBarNew_t`/`_s` (a visitor's first version) and `LPBarClick_t`/`_s` (taps to
+  the store). When the test ends, make the winner the default bar and set
+  `BAR_TEST` to null.
 - `public/_redirects` sends everything that isn't a page to the store.
 
 The page designs themselves carry no tracking code. Changing the snippet here
