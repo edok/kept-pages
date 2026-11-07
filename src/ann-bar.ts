@@ -18,8 +18,10 @@ export const ANN_BAR = {
     // difference). Same wording as the store's bar ("is Live!" since Nov 3,
     // 9:49 AM PT). It stops being true after Cyber Monday (Nov 30): give it an
     // until and add the next line before then.
-    { text: "Black Friday Sale is Live!" },
-  ] as { text: string; until?: string }[],
+    // `sentence` is the same line in sentence case, for bar versions that don't
+    // set it in capitals (the Serif version in BAR_TEST below).
+    { text: "Black Friday Sale is Live!", sentence: "Black Friday sale is live!" },
+  ] as { text: string; until?: string; sentence?: string }[],
   code: "KEPT25",
 };
 
@@ -42,6 +44,29 @@ export const SALE_TEST: {
   arms: Record<string, string>;
 } | null = null;
 
+// The store's announcement bar test (Intelligems, "Announcement bar: Tidy vs
+// Serif", Nov 2026), extended to the landing pages the same way as the
+// sale-name test: each visitor gets one bar version at random, kept in the
+// kept_bar cookie on keptcollection.com (the store writes it too, for visitors
+// it assigns first), drawn here and passed to the store as kb=<arm> on every
+// store link, so the store test puts them in the matching group.
+//   t = Tidy (A, control): today's three lines, first line in Jost Bold (was
+//       ExtraBold), "with code KEPT25" in place of the dash.
+//   s = Serif (B): the first line in EB Garamond, sentence case, then one small
+//       line "Free shipping · 25% off 2+ books with KEPT25"; one row from 760px.
+// The pages count the split with pixel custom events: LPBar_t/_s (every page
+// view), LPBarNew_t/_s (a visitor's first version, the pages' own random split)
+// and LPBarClick_t/_s (with each LPClick, from src/tracking.ts).
+// Set to null to stop: every visitor then gets the default bar (the three lines
+// with the ExtraBold first line). When the test ends, make the winner the
+// default and set this to null.
+export const BAR_TEST: {
+  from: string;
+  cookie: string;
+  param: string;
+  arms: string[];
+} | null = { from: "2026-11-07T00:00:00Z", cookie: "kept_bar", param: "kb", arms: ["t", "s"] };
+
 const CSS = `
 .kept-ann{display:block!important;box-sizing:border-box;width:100%;margin:0;padding:10px 16px;background:#657686;color:#fff;text-align:center}
 .kept-ann *{box-sizing:border-box}
@@ -62,17 +87,24 @@ const CSS = `
 @media (min-width:641px){.kept-ann{padding:11px 24px}.kept-ann .kept-ann__text{font-size:12px!important;letter-spacing:.16em!important;line-height:1.6!important}}
 @media (min-width:1000px){.kept-ann{padding:11px 48px}}
 [data-kept-ann-replaced]{display:none!important}
+.kept-ann--t,.kept-ann--s{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.kept-ann--t .kept-ann__lead{font-weight:700!important}
+@media (max-width:374px){.kept-ann--t .kept-ann__text{font-size:12px!important;letter-spacing:.12em!important}}
+.kept-ann--s .kept-ann__text{font-size:11px!important;letter-spacing:.14em!important;line-height:1.7!important}
+.kept-ann--s .kept-ann__head{font-family:"EB Garamond",Garamond,"Times New Roman",serif!important;font-weight:400!important;font-size:20px!important;letter-spacing:0!important;line-height:1.25!important;text-transform:none!important}
+@media (max-width:389px){.kept-ann--s{padding-left:10px;padding-right:10px}.kept-ann--s .kept-ann__text{font-size:10.5px!important;letter-spacing:.12em!important}}
+@media (min-width:760px){.kept-ann--s .kept-ann__text{font-size:12px!important;letter-spacing:.16em!important;line-height:1.6!important}.kept-ann--s br{display:none}.kept-ann--s .kept-ann__head::after{content:"";display:inline-block;width:1px;height:15px;margin:0 18px;background:currentColor;vertical-align:-2px}}
 `.replace(/\n/g, "");
 
 export function annBarSnippet(opts: { lp: string }): string {
-  const cfg = JSON.stringify({ lp: opts.lp, headlines: ANN_BAR.headlines, test: SALE_TEST, code: ANN_BAR.code, css: CSS }).replace(/</g, "\\u003c");
+  const cfg = JSON.stringify({ lp: opts.lp, headlines: ANN_BAR.headlines, test: SALE_TEST, barTest: BAR_TEST, code: ANN_BAR.code, css: CSS }).replace(/</g, "\\u003c");
   return `<script>/* Kept LP offer bar, added by the go.keptcollection.com router (src/ann-bar.ts) */
 (function (cfg) {
   try {
-    var now = Date.now(), headline = '';
+    var now = Date.now(), headline = '', sentence = '';
     for (var i = 0; i < cfg.headlines.length; i++) {
       var h = cfg.headlines[i];
-      if (!h.until || now < Date.parse(h.until)) { headline = h.text; break; }
+      if (!h.until || now < Date.parse(h.until)) { headline = h.text; sentence = h.sentence || h.text; break; }
     }
 
     // Sale-name test: one name per visitor, shared with the store (see SALE_TEST).
@@ -87,7 +119,7 @@ export function annBarSnippet(opts: { lp: string }): string {
       var host = window.location.hostname;
       var domain = /(^|\\.)keptcollection\\.com$/i.test(host) ? '; Domain=keptcollection.com' : '';
       try { document.cookie = t.cookie + '=' + arm + domain + '; Path=/; Max-Age=5184000; SameSite=Lax; Secure'; } catch (err) {}
-      headline = t.arms[arm];
+      headline = sentence = t.arms[arm];
       // Added to every store link by the tracking snippet (decorate()).
       window.__keptStoreParams = window.__keptStoreParams || {};
       window.__keptStoreParams[t.param] = arm;
@@ -106,6 +138,31 @@ export function annBarSnippet(opts: { lp: string }): string {
         }
       } catch (err) {}
     }
+
+    // Bar design test: Tidy (t) or Serif (s), one per visitor, shared with the
+    // store (see BAR_TEST). Same cookie and store-param handling as above.
+    var look = '';
+    var bt = cfg.barTest;
+    if (bt && now >= Date.parse(bt.from)) {
+      var barArm = (document.cookie.match(new RegExp('(?:^|; )' + bt.cookie + '=([^;]*)')) || [])[1];
+      var barFresh = bt.arms.indexOf(barArm) < 0;
+      if (barFresh) barArm = bt.arms[Math.floor(Math.random() * bt.arms.length)];
+      var barDomain = /(^|\\.)keptcollection\\.com$/i.test(window.location.hostname) ? '; Domain=keptcollection.com' : '';
+      try { document.cookie = bt.cookie + '=' + barArm + barDomain + '; Path=/; Max-Age=5184000; SameSite=Lax; Secure'; } catch (err) {}
+      look = barArm;
+      window.__keptStoreParams = window.__keptStoreParams || {};
+      window.__keptStoreParams[bt.param] = barArm;
+      // LPBar_<arm> on every page view, LPBarNew_<arm> for a visitor's first
+      // version; the tracking snippet adds LPBarClick_<arm> to each LPClick.
+      window.__keptBarArm = barArm;
+      try {
+        if (window.fbq) {
+          window.fbq('trackCustom', 'LPBar_' + barArm, { lp: cfg.lp });
+          if (barFresh) window.fbq('trackCustom', 'LPBarNew_' + barArm, { lp: cfg.lp });
+        }
+      } catch (err) {}
+    }
+
     var NB = '\\u00a0';
     var SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">';
     var ICON_COPY = SVG + '<rect x="8.5" y="8.5" width="12" height="12" rx="1"/><path d="M15.5 8.5V4.5a1 1 0 0 0-1-1h-10a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h4"/></svg>';
@@ -116,21 +173,29 @@ export function annBarSnippet(opts: { lp: string }): string {
 
     function build() {
       var bar = document.createElement('div');
-      bar.className = 'kept-ann';
+      bar.className = 'kept-ann' + (look ? ' kept-ann--' + look : '');
       bar.setAttribute('role', 'region');
       bar.setAttribute('aria-label', 'Offer');
+      var code = '<span class="kept-ann__group"><u class="kept-ann__code">' + esc(cfg.code) + '</u>' +
+        '<button type="button" class="kept-ann__copy" aria-label="Copy code ' + esc(cfg.code) + '" title="Copy code">' +
+          '<span class="kept-ann__icon">' + ICON_COPY + '</span><span class="kept-ann__done">' + ICON_DONE + '</span>' +
+        '</button></span>';
+      var lines;
+      if (look === 's') {
+        lines = (sentence ? '<span class="kept-ann__head">' + esc(sentence) + '</span><br>' : '') +
+          '<span class="kept-ann__group">Free shipping \\u00b7 25% off 2+ books with' + NB + '</span><wbr>' + code;
+      } else {
+        lines = (headline ? '<span class="kept-ann__lead">' + esc(headline) + '</span><br>' : '') +
+          '\\ud83d\\udce6' + NB + 'Free shipping' + NB + 'on <u>all</u> orders<br>' +
+          '<span class="kept-ann__group">\\ud83d\\udcda' + NB + '25% off 2+ books' + NB +
+            (look === 't' ? 'with code' : '\\u2014 code:') + NB + '</span><wbr>' + code;
+      }
+      var fonts = 'https://fonts.googleapis.com/css2?' + (look === 's' ? 'family=EB+Garamond&' : '') +
+        'family=Jost:wght@500;' + (look === 't' ? '700' : '800') + '&display=swap';
       bar.innerHTML =
         '<style>' + cfg.css + '</style>' +
-        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;800&display=swap">' +
-        '<p class="kept-ann__text">' +
-          (headline ? '<span class="kept-ann__lead">' + esc(headline) + '</span><br>' : '') +
-          '\\ud83d\\udce6' + NB + 'Free shipping' + NB + 'on <u>all</u> orders<br>' +
-          '<span class="kept-ann__group">\\ud83d\\udcda' + NB + '25% off 2+ books' + NB + '\\u2014 code:' + NB + '</span><wbr>' +
-          '<span class="kept-ann__group"><u class="kept-ann__code">' + esc(cfg.code) + '</u>' +
-            '<button type="button" class="kept-ann__copy" aria-label="Copy code ' + esc(cfg.code) + '" title="Copy code">' +
-              '<span class="kept-ann__icon">' + ICON_COPY + '</span><span class="kept-ann__done">' + ICON_DONE + '</span>' +
-            '</button></span>' +
-        '</p>' +
+        '<link rel="stylesheet" href="' + fonts + '">' +
+        '<p class="kept-ann__text">' + lines + '</p>' +
         '<span class="kept-ann__sr" role="status"></span>';
       wire(bar);
       return bar;

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import handler from "../netlify/edge-functions/landing-page.ts";
-import { ANN_BAR, SALE_TEST } from "../src/ann-bar.ts";
+import { ANN_BAR, SALE_TEST, BAR_TEST } from "../src/ann-bar.ts";
 
 const LP_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>LP</title></head><body><a href="https://keptcollection.com/products/childhood-a-history">Start</a></body></html>`;
 
@@ -147,4 +147,23 @@ test("sale-name test off: every visitor gets the dated line, with no cookie, sto
   assert.ok(!html.includes("Holiday Sale is Live!"));
   // The switch code stays in place for the next test, but does nothing while test is null.
   assert.match(html, /if \(t && now >= Date\.parse\(t\.from\)\)/);
+});
+
+test("bar test on: both versions ship, with the kept_bar cookie, kb store param and split events", async () => {
+  assert.ok(BAR_TEST);
+  assert.deepEqual(BAR_TEST!.arms, ["t", "s"]);
+  assert.equal(BAR_TEST!.cookie, "kept_bar");
+  assert.equal(BAR_TEST!.param, "kb");
+  assert.ok(!Number.isNaN(Date.parse(BAR_TEST!.from)));
+  mockFetch(200);
+  const res = (await handler(new Request("https://go.keptcollection.com/new-mom"), ctx("new-mom"))) as Response;
+  const html = await res.text();
+  assert.ok(html.includes('"barTest":{"from":'));
+  // The Serif version's first line, in sentence case, next to the capitals one.
+  assert.ok(html.includes('"sentence":"Black Friday sale is live!"'));
+  assert.match(html, /kept-ann--s \.kept-ann__head/);
+  assert.match(html, /kept-ann--t \.kept-ann__lead\{font-weight:700/);
+  assert.match(html, /'LPBar_' \+ barArm/);
+  assert.match(html, /'LPBarNew_' \+ barArm/);
+  assert.match(html, /'LPBarClick_' \+ window\.__keptBarArm/);
 });

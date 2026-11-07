@@ -22,7 +22,7 @@ import { createRequire } from "node:module";
 import { writeFileSync } from "node:fs";
 import { LANDING_PAGES, META_PIXEL_ID, STORE_FALLBACK } from "../src/lps.ts";
 import { trackingSnippet } from "../src/tracking.ts";
-import { SALE_TEST } from "../src/ann-bar.ts";
+import { SALE_TEST, BAR_TEST } from "../src/ann-bar.ts";
 
 const require = createRequire(import.meta.url);
 const { chromium, webkit, devices } = require("playwright");
@@ -224,6 +224,22 @@ async function pageChecks(browser: any, label: string, device: any) {
         const fresh = ctx.calls.filter((c) => c[0] === "trackCustom" && /^LPSaleNew_/.test(c[1])).map((c) => c[1]);
         if (!arm) problems.push(`bar's first line isn't a test name ("${lead}")`);
         else if (named.join() !== `LPSaleName_${arm}` || fresh.join() !== `LPSaleNew_${arm}`) problems.push(`sale-name events wrong (${[...named, ...fresh].join(", ") || "none"} for "${lead}")`);
+      }
+      // Bar test: this fresh visitor's version is counted once, as a new
+      // visitor too, and the bar drawn is that version's layout.
+      if (BAR_TEST && Date.now() >= Date.parse(BAR_TEST.from)) {
+        const look = await page.evaluate(() => {
+          const el = document.querySelector(".kept-ann");
+          if (!el) return "";
+          const arm = (Array.from(el.classList).find((c) => /^kept-ann--/.test(c)) || "").replace("kept-ann--", "");
+          return arm + "|" + (el.querySelector(".kept-ann__head") ? "head" : "lead");
+        }).catch(() => "");
+        const [arm, kind] = look.split("|");
+        const seen = ctx.calls.filter((c) => c[0] === "trackCustom" && /^LPBar_/.test(c[1])).map((c) => c[1]);
+        const fresh = ctx.calls.filter((c) => c[0] === "trackCustom" && /^LPBarNew_/.test(c[1])).map((c) => c[1]);
+        if (!BAR_TEST.arms.includes(arm)) problems.push(`bar isn't a test version ("${look}")`);
+        else if ((arm === "s") !== (kind === "head")) problems.push(`bar version ${arm} drew the wrong layout`);
+        else if (seen.join() !== `LPBar_${arm}` || fresh.join() !== `LPBarNew_${arm}`) problems.push(`bar-test events wrong (${[...seen, ...fresh].join(", ") || "none"} for ${arm})`);
       }
       record(name, problems.length === 0, problems.join("; ") || `${state?.links} store links, ${state?.text} chars`);
     } catch (err) {
