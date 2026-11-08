@@ -18,10 +18,8 @@ export const ANN_BAR = {
     // difference). Same wording as the store's bar ("is Live!" since Nov 3,
     // 9:49 AM PT). It stops being true after Cyber Monday (Nov 30): give it an
     // until and add the next line before then.
-    // `sentence` is the same line in sentence case, for bar versions that don't
-    // set it in capitals (the Serif version in BAR_TEST below).
-    { text: "Black Friday Sale is Live!", sentence: "Black Friday sale is live!" },
-  ] as { text: string; until?: string; sentence?: string }[],
+    { text: "Black Friday Sale is Live!" },
+  ] as { text: string; until?: string }[],
   code: "KEPT25",
 };
 
@@ -45,33 +43,36 @@ export const SALE_TEST: {
 } | null = null;
 
 // The store's announcement bar test (Intelligems, "Announcement bar: Tidy vs
-// Serif", Nov 2026), extended to the landing pages the same way as the
-// sale-name test: each visitor gets one bar version at random, kept in the
+// Serif", Nov 7, 2026), extended to the landing pages the same way as the
+// sale-name test: each visitor got one bar version at random, kept in the
 // kept_bar cookie on keptcollection.com (the store writes it too, for visitors
 // it assigns first), drawn here and passed to the store as kb=<arm> on every
-// store link, so the store test puts them in the matching group.
-//   t = Tidy (A, control): today's three lines, first line in Jost Bold (was
+// store link, so the store test put them in the matching group. The pages
+// counted the split with pixel custom events LPBar_<arm> (every page view),
+// LPBarNew_<arm> (a visitor's first version) and LPBarClick_<arm> (with each
+// LPClick, from src/tracking.ts).
+//   t = Tidy (A, control): the three lines, first line in Jost Bold (was
 //       ExtraBold), "with code KEPT25" in place of the dash.
-//   s = Serif (B): the first line in EB Garamond, sentence case, then one small
-//       line "Free shipping · 25% off 2+ books with KEPT25"; one row from 760px.
-// The pages count the split with pixel custom events: LPBar_t/_s (every page
-// view), LPBarNew_t/_s (a visitor's first version, the pages' own random split)
-// and LPBarClick_t/_s (with each LPClick, from src/tracking.ts).
-// Set to null to stop: every visitor then gets the default bar (the three lines
-// with the ExtraBold first line). When the test ends, make the winner the
-// default and set this to null.
+//   s = Serif (B): the first line in EB Garamond, then one small line.
+// Off since Nov 7, 4:15 PM PT: Cody picked Tidy after the first day (store:
+// Tidy 14 orders, $5.55 per visitor; Serif 7, $2.26). Tidy is now the bar below
+// for every visitor, and Serif is gone. To run another bar test, set this to e.g.
+// { from, cookie: "kept_bar", param: "kb", arms: ["t", "x"] }: each visitor's
+// bar then gets the class kept-ann--<arm>, so add that version's CSS (and any
+// wording change in build()) for each arm other than the default.
 export const BAR_TEST: {
   from: string;
   cookie: string;
   param: string;
   arms: string[];
-} | null = { from: "2026-11-07T00:00:00Z", cookie: "kept_bar", param: "kb", arms: ["t", "s"] };
+} | null = null;
 
 const CSS = `
-.kept-ann{display:block!important;box-sizing:border-box;width:100%;margin:0;padding:10px 16px;background:#657686;color:#fff;text-align:center}
+.kept-ann{display:block!important;box-sizing:border-box;width:100%;margin:0;padding:10px 16px;background:#657686;color:#fff;text-align:center;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .kept-ann *{box-sizing:border-box}
 .kept-ann .kept-ann__text{margin:0!important;padding:0;color:#fff!important;font-family:"Jost","Avenir Next","Helvetica Neue",sans-serif!important;font-weight:500!important;font-style:normal;font-size:13px!important;letter-spacing:.14em!important;line-height:1.7!important;text-transform:uppercase!important;text-align:center}
-.kept-ann .kept-ann__lead{font-weight:800!important}
+@media (max-width:374px){.kept-ann .kept-ann__text{font-size:12px!important;letter-spacing:.12em!important}}
+.kept-ann .kept-ann__lead{font-weight:700!important}
 .kept-ann u{color:inherit;text-decoration:underline}
 .kept-ann .kept-ann__group{white-space:nowrap}
 .kept-ann .kept-ann__copy{-webkit-appearance:none;appearance:none;box-sizing:content-box;position:relative;display:inline-grid;place-items:center;width:14px;height:14px;margin:0 0 0 6px;padding:0;border:0;border-radius:0;background:transparent;color:inherit;line-height:0;vertical-align:-2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -87,13 +88,6 @@ const CSS = `
 @media (min-width:641px){.kept-ann{padding:11px 24px}.kept-ann .kept-ann__text{font-size:12px!important;letter-spacing:.16em!important;line-height:1.6!important}}
 @media (min-width:1000px){.kept-ann{padding:11px 48px}}
 [data-kept-ann-replaced]{display:none!important}
-.kept-ann--t,.kept-ann--s{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-.kept-ann--t .kept-ann__lead{font-weight:700!important}
-@media (max-width:374px){.kept-ann--t .kept-ann__text{font-size:12px!important;letter-spacing:.12em!important}}
-.kept-ann--s .kept-ann__text{font-size:11px!important;letter-spacing:.14em!important;line-height:1.7!important}
-.kept-ann--s .kept-ann__head{font-family:"EB Garamond",Garamond,"Times New Roman",serif!important;font-weight:400!important;font-size:20px!important;letter-spacing:0!important;line-height:1.25!important;text-transform:none!important}
-@media (max-width:389px){.kept-ann--s{padding-left:10px;padding-right:10px}.kept-ann--s .kept-ann__text{font-size:10.5px!important;letter-spacing:.12em!important}}
-@media (min-width:760px){.kept-ann--s .kept-ann__text{font-size:12px!important;letter-spacing:.16em!important;line-height:1.6!important}.kept-ann--s br{display:none}.kept-ann--s .kept-ann__head::after{content:"";display:inline-block;width:1px;height:15px;margin:0 18px;background:currentColor;vertical-align:-2px}}
 `.replace(/\n/g, "");
 
 export function annBarSnippet(opts: { lp: string }): string {
@@ -101,10 +95,10 @@ export function annBarSnippet(opts: { lp: string }): string {
   return `<script>/* Kept LP offer bar, added by the go.keptcollection.com router (src/ann-bar.ts) */
 (function (cfg) {
   try {
-    var now = Date.now(), headline = '', sentence = '';
+    var now = Date.now(), headline = '';
     for (var i = 0; i < cfg.headlines.length; i++) {
       var h = cfg.headlines[i];
-      if (!h.until || now < Date.parse(h.until)) { headline = h.text; sentence = h.sentence || h.text; break; }
+      if (!h.until || now < Date.parse(h.until)) { headline = h.text; break; }
     }
 
     // Sale-name test: one name per visitor, shared with the store (see SALE_TEST).
@@ -119,7 +113,7 @@ export function annBarSnippet(opts: { lp: string }): string {
       var host = window.location.hostname;
       var domain = /(^|\\.)keptcollection\\.com$/i.test(host) ? '; Domain=keptcollection.com' : '';
       try { document.cookie = t.cookie + '=' + arm + domain + '; Path=/; Max-Age=5184000; SameSite=Lax; Secure'; } catch (err) {}
-      headline = sentence = t.arms[arm];
+      headline = t.arms[arm];
       // Added to every store link by the tracking snippet (decorate()).
       window.__keptStoreParams = window.__keptStoreParams || {};
       window.__keptStoreParams[t.param] = arm;
@@ -139,8 +133,9 @@ export function annBarSnippet(opts: { lp: string }): string {
       } catch (err) {}
     }
 
-    // Bar design test: Tidy (t) or Serif (s), one per visitor, shared with the
-    // store (see BAR_TEST). Same cookie and store-param handling as above.
+    // Bar design test: one version per visitor, shared with the store (see
+    // BAR_TEST; off while it's null). Same cookie and store-param handling as
+    // above; the version only adds a kept-ann--<arm> class to the bar.
     var look = '';
     var bt = cfg.barTest;
     if (bt && now >= Date.parse(bt.from)) {
@@ -180,18 +175,12 @@ export function annBarSnippet(opts: { lp: string }): string {
         '<button type="button" class="kept-ann__copy" aria-label="Copy code ' + esc(cfg.code) + '" title="Copy code">' +
           '<span class="kept-ann__icon">' + ICON_COPY + '</span><span class="kept-ann__done">' + ICON_DONE + '</span>' +
         '</button></span>';
-      var lines;
-      if (look === 's') {
-        lines = (sentence ? '<span class="kept-ann__head">' + esc(sentence) + '</span><br>' : '') +
-          '<span class="kept-ann__group">Free shipping \\u00b7 25% off 2+ books with' + NB + '</span><wbr>' + code;
-      } else {
-        lines = (headline ? '<span class="kept-ann__lead">' + esc(headline) + '</span><br>' : '') +
-          '\\ud83d\\udce6' + NB + 'Free shipping' + NB + 'on <u>all</u> orders<br>' +
-          '<span class="kept-ann__group">\\ud83d\\udcda' + NB + '25% off 2+ books' + NB +
-            (look === 't' ? 'with code' : '\\u2014 code:') + NB + '</span><wbr>' + code;
-      }
-      var fonts = 'https://fonts.googleapis.com/css2?' + (look === 's' ? 'family=EB+Garamond&' : '') +
-        'family=Jost:wght@500;' + (look === 't' ? '700' : '800') + '&display=swap';
+      // The Tidy bar (won the Nov 7 bar test): first line in Jost Bold, then
+      // "with code KEPT25" on the third line, as in the store's bar.
+      var lines = (headline ? '<span class="kept-ann__lead">' + esc(headline) + '</span><br>' : '') +
+        '\\ud83d\\udce6' + NB + 'Free shipping' + NB + 'on <u>all</u> orders<br>' +
+        '<span class="kept-ann__group">\\ud83d\\udcda' + NB + '25% off 2+ books' + NB + 'with code' + NB + '</span><wbr>' + code;
+      var fonts = 'https://fonts.googleapis.com/css2?family=Jost:wght@500;700&display=swap';
       bar.innerHTML =
         '<style>' + cfg.css + '</style>' +
         '<link rel="stylesheet" href="' + fonts + '">' +
