@@ -164,6 +164,8 @@ test("bar test off: every visitor gets the Tidy bar, with no cookie, store param
   assert.match(bar, /\.kept-ann \.kept-ann__lead\{font-weight:700!important\}/);
   assert.ok(!bar.includes("font-weight:800"));
   assert.match(bar, /\.kept-ann\{[^}]*-webkit-font-smoothing:antialiased/);
+  // Phones: 10px sides, as in the store's bar, so the third line fits on a 375px iPhone.
+  assert.match(bar, /\.kept-ann\{[^}]*padding:10px;/);
   assert.match(bar, /@media \(max-width:374px\)\{\.kept-ann \.kept-ann__text\{font-size:12px!important;letter-spacing:\.12em!important\}\}/);
   assert.ok(bar.includes("25% off 2+ books' + NB + 'with code' + NB"));
   assert.ok(!bar.includes("\\u2014 code:"));

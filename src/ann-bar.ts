@@ -68,7 +68,7 @@ export const BAR_TEST: {
 } | null = null;
 
 const CSS = `
-.kept-ann{display:block!important;box-sizing:border-box;width:100%;margin:0;padding:10px 16px;background:#657686;color:#fff;text-align:center;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.kept-ann{display:block!important;box-sizing:border-box;width:100%;margin:0;padding:10px;background:#657686;color:#fff;text-align:center;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .kept-ann *{box-sizing:border-box}
 .kept-ann .kept-ann__text{margin:0!important;padding:0;color:#fff!important;font-family:"Jost","Avenir Next","Helvetica Neue",sans-serif!important;font-weight:500!important;font-style:normal;font-size:13px!important;letter-spacing:.14em!important;line-height:1.7!important;text-transform:uppercase!important;text-align:center}
 @media (max-width:374px){.kept-ann .kept-ann__text{font-size:12px!important;letter-spacing:.12em!important}}
