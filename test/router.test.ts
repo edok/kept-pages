@@ -149,21 +149,30 @@ test("sale-name test off: every visitor gets the dated line, with no cookie, sto
   assert.match(html, /if \(t && now >= Date\.parse\(t\.from\)\)/);
 });
 
-test("bar test on: both versions ship, with the kept_bar cookie, kb store param and split events", async () => {
-  assert.ok(BAR_TEST);
-  assert.deepEqual(BAR_TEST!.arms, ["t", "s"]);
-  assert.equal(BAR_TEST!.cookie, "kept_bar");
-  assert.equal(BAR_TEST!.param, "kb");
-  assert.ok(!Number.isNaN(Date.parse(BAR_TEST!.from)));
+test("bar test off: every visitor gets the Tidy bar, with no cookie, store param or split events", async () => {
+  assert.equal(BAR_TEST, null);
   mockFetch(200);
   const res = (await handler(new Request("https://go.keptcollection.com/new-mom"), ctx("new-mom"))) as Response;
   const html = await res.text();
-  assert.ok(html.includes('"barTest":{"from":'));
-  // The Serif version's first line, in sentence case, next to the capitals one.
-  assert.ok(html.includes('"sentence":"Black Friday sale is live!"'));
-  assert.match(html, /kept-ann--s \.kept-ann__head/);
-  assert.match(html, /kept-ann--t \.kept-ann__lead\{font-weight:700/);
-  assert.match(html, /'LPBar_' \+ barArm/);
-  assert.match(html, /'LPBarNew_' \+ barArm/);
+  // Just the offer bar's script (the page design has its own fonts and weights).
+  const start = html.indexOf("Kept LP offer bar");
+  assert.ok(start > 0);
+  const bar = html.slice(start, html.indexOf("</script>", start));
+  assert.ok(bar.includes('"barTest":null'));
+  // Tidy, the Nov 7 winner, is the bar itself now: Jost Bold first line,
+  // "with code KEPT25", smoother type, the narrow-phone size step.
+  assert.match(bar, /\.kept-ann \.kept-ann__lead\{font-weight:700!important\}/);
+  assert.ok(!bar.includes("font-weight:800"));
+  assert.match(bar, /\.kept-ann\{[^}]*-webkit-font-smoothing:antialiased/);
+  // Phones: 10px sides, as in the store's bar, so the third line fits on a 375px iPhone.
+  assert.match(bar, /\.kept-ann\{[^}]*padding:10px;/);
+  assert.match(bar, /@media \(max-width:374px\)\{\.kept-ann \.kept-ann__text\{font-size:12px!important;letter-spacing:\.12em!important\}\}/);
+  assert.ok(bar.includes("25% off 2+ books' + NB + 'with code' + NB"));
+  assert.ok(!bar.includes("\\u2014 code:"));
+  assert.ok(bar.includes("family=Jost:wght@500;700&display=swap"));
+  // Serif is gone.
+  assert.ok(!/kept-ann--s|kept-ann__head|Garamond|"sentence"/.test(bar));
+  // The switch code stays in place for the next test, but does nothing while barTest is null.
+  assert.match(bar, /if \(bt && now >= Date\.parse\(bt\.from\)\)/);
   assert.match(html, /'LPBarClick_' \+ window\.__keptBarArm/);
 });

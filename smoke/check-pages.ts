@@ -240,6 +240,21 @@ async function pageChecks(browser: any, label: string, device: any) {
         if (!BAR_TEST.arms.includes(arm)) problems.push(`bar isn't a test version ("${look}")`);
         else if ((arm === "s") !== (kind === "head")) problems.push(`bar version ${arm} drew the wrong layout`);
         else if (seen.join() !== `LPBar_${arm}` || fresh.join() !== `LPBarNew_${arm}`) problems.push(`bar-test events wrong (${[...seen, ...fresh].join(", ") || "none"} for ${arm})`);
+      } else {
+        // No bar test: the Tidy bar (the Nov 7 winner) for everyone, and no
+        // bar-test events.
+        const tidy = await page.evaluate(() => {
+          const el = document.querySelector(".kept-ann");
+          const lead = el?.querySelector(".kept-ann__lead");
+          return {
+            classes: el ? el.className : "",
+            lead: lead ? getComputedStyle(lead).fontWeight : "",
+            withCode: /25% off 2\+ books\s+with code\s+KEPT25/.test((el?.textContent || "").replace(/ /g, " ")),
+          };
+        }).catch(() => null);
+        const barEvents = ctx.calls.filter((c) => c[0] === "trackCustom" && /^LPBar/.test(c[1])).map((c) => c[1]);
+        if (!tidy || tidy.classes !== "kept-ann" || tidy.lead !== "700" || !tidy.withCode) problems.push(`offer bar isn't the Tidy bar (${JSON.stringify(tidy)})`);
+        if (barEvents.length) problems.push(`bar-test events fired with the test off (${barEvents.join(", ")})`);
       }
       record(name, problems.length === 0, problems.join("; ") || `${state?.links} store links, ${state?.text} chars`);
     } catch (err) {
