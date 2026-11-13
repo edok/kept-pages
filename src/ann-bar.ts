@@ -70,8 +70,9 @@ export const BAR_TEST: {
 const CSS = `
 .kept-ann{display:block!important;box-sizing:border-box;width:100%;margin:0;padding:10px;background:#657686;color:#fff;text-align:center;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .kept-ann *{box-sizing:border-box}
-.kept-ann .kept-ann__text{margin:0!important;padding:0;color:#fff!important;font-family:"Jost","Avenir Next","Helvetica Neue",sans-serif!important;font-weight:500!important;font-style:normal;font-size:13px!important;letter-spacing:.14em!important;line-height:1.7!important;text-transform:uppercase!important;text-align:center}
-@media (max-width:374px){.kept-ann .kept-ann__text{font-size:12px!important;letter-spacing:.12em!important}}
+.kept-ann .kept-ann__text{margin:0!important;padding:0;color:#fff!important;font-family:"Jost","Avenir Next","Helvetica Neue",sans-serif!important;font-weight:500!important;font-style:normal;font-size:14px!important;letter-spacing:.12em!important;line-height:1.7!important;text-transform:uppercase!important;text-align:center}
+@media (max-width:389px){.kept-ann .kept-ann__text{font-size:13.5px!important}}
+@media (max-width:374px){.kept-ann .kept-ann__text{font-size:13px!important;letter-spacing:.11em!important}}
 .kept-ann .kept-ann__lead{font-weight:700!important}
 .kept-ann u{color:inherit;text-decoration:underline}
 .kept-ann .kept-ann__group{white-space:nowrap}
@@ -85,7 +86,7 @@ const CSS = `
 @media (hover:hover){.kept-ann .kept-ann__copy:hover{opacity:.7}}
 .kept-ann .kept-ann__copy:focus-visible{outline:1px solid currentColor;outline-offset:3px}
 .kept-ann .kept-ann__sr{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-@media (min-width:641px){.kept-ann{padding:11px 24px}.kept-ann .kept-ann__text{font-size:12px!important;letter-spacing:.16em!important;line-height:1.6!important}}
+@media (min-width:641px){.kept-ann{padding:11px 24px}.kept-ann .kept-ann__text{font-size:13px!important;letter-spacing:.16em!important;line-height:1.6!important}}
 @media (min-width:1000px){.kept-ann{padding:11px 48px}}
 [data-kept-ann-replaced]{display:none!important}
 `.replace(/\n/g, "");
