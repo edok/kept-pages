@@ -1,7 +1,8 @@
 // Run: node --experimental-strip-types --test test/
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractAsset, imageSize, optimizeBundle, preloadReact } from "../src/bundle.ts";
+import { applyCopyFixes, extractAsset, imageSize, optimizeBundle, preloadReact } from "../src/bundle.ts";
+import { COPY_FIXES } from "../src/copy-fixes.ts";
 import landingPage from "../netlify/edge-functions/landing-page.ts";
 import lpAsset from "../netlify/edge-functions/lp-asset.ts";
 
@@ -180,4 +181,36 @@ test("React and ReactDOM load ahead of the page scripts, from the copies already
 
 test("pages without React in the bundle are left alone", () => {
   assert.equal(preloadReact(BUNDLE), null);
+});
+
+test("copy fixes swap text inside the template; already-fixed text counts, the rest of the bundle is untouched", () => {
+  const html = BUNDLE.replace(JSON.stringify(templateHtml).replace(/<\//g, "<\\u002F"),
+    JSON.stringify(templateHtml.replace("<title>LP</title>", "<title>LP</title><p>She picks it.</p><p>Already right.</p>")).replace(/<\//g, "<\\u002F"));
+  const r = applyCopyFixes(html, [["She picks it.", "They pick it."], ["Old line.", "Already right."], ["Not on the page.", "Nope."]])!;
+  assert.equal(r.applied, 2);
+  assert.deepEqual(r.missing, [2]);
+  const tpl = readScript(r.html, "__bundler/template") as string;
+  assert.match(tpl, /<p>They pick it\.<\/p><p>Already right\.<\/p>/);
+  assert.ok(!tpl.includes("She picks"));
+  assert.deepEqual(readScript(r.html, "__bundler/manifest"), manifest);
+  assert.ok(!r.html.slice(r.html.indexOf('<script type="__bundler/template">') + 34).split("</script>")[0].includes("</"));
+  assert.equal(applyCopyFixes("<html><body>plain page</body></html>", [["a", "b"]]), null);
+});
+
+test("edge function: /gift-older-kids gets its copy fixes and reports them in X-Kept-Copy-Fixes", async () => {
+  const fixes = COPY_FIXES["gift-older-kids"].fixes;
+  assert.ok(fixes.length > 20);
+  const [from, to] = fixes.find(([f]) => f.includes("ready the day the baby arrives"))!;
+  const withOld = BUNDLE.replace(JSON.stringify(templateHtml).replace(/<\//g, "<\\u002F"),
+    JSON.stringify(templateHtml.replace("</body>", `<p>${from}</p></body>`)).replace(/<\//g, "<\\u002F"));
+  globalThis.fetch = (async () => new Response(withOld, { status: 200 })) as typeof fetch;
+  const res = (await landingPage(new Request("https://go.keptcollection.com/gift-older-kids"), { params: { slug: "gift-older-kids" } } as any)) as Response;
+  assert.equal(res.headers.get("x-kept-copy-fixes"), `1/${fixes.length}`);
+  const page = runLoader(await res.text());
+  assert.ok(page.includes(to));
+  assert.ok(!page.includes("ready the day the baby arrives"));
+  // Pages without fixes don't get the header.
+  globalThis.fetch = (async () => new Response(BUNDLE, { status: 200 })) as typeof fetch;
+  const other = (await landingPage(new Request("https://go.keptcollection.com/new-baby"), { params: { slug: "new-baby" } } as any)) as Response;
+  assert.equal(other.headers.get("x-kept-copy-fixes"), null);
 });

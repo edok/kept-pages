@@ -170,6 +170,33 @@ export function optimizeBundle(html: string, opts: { slug: string; origin: strin
   return { html: out, preloads, moved };
 }
 
+// Copy fixes (src/copy-fixes.ts): exact text swaps inside the export's page
+// template, made before anything else touches it. A fix whose new text is
+// already in the page counts as applied (the canvas was fixed and re-exported);
+// one that matches neither is reported as missing and the page is served with
+// the rest applied. Returns null if the page isn't a design export.
+export type CopyFixResult = { html: string; applied: number; missing: number[] };
+
+export function applyCopyFixes(html: string, fixes: ReadonlyArray<readonly [string, string]>): CopyFixResult | null {
+  const t = scriptBody(html, TEMPLATE_TAG);
+  if (!t) return null;
+  let template = JSON.parse(html.slice(t.start, t.end)) as string;
+  let applied = 0;
+  const missing: number[] = [];
+  fixes.forEach(([from, to], i) => {
+    if (from && template.includes(from)) {
+      template = template.split(from).join(to);
+      applied++;
+    } else if (to && template.includes(to)) {
+      applied++;
+    } else {
+      missing.push(i);
+    }
+  });
+  const json = JSON.stringify(template).replace(/</g, "\\u003c");
+  return { html: html.slice(0, t.start) + json + html.slice(t.end), applied, missing };
+}
+
 // React has to exist before the page's design-system bundle runs.
 //
 // The export ships React and ReactDOM inside the manifest (listed in

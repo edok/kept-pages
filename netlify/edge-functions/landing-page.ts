@@ -1,6 +1,7 @@
 import type { Config, Context } from "@netlify/edge-functions";
 import { annBarSnippet } from "../../src/ann-bar.ts";
-import { optimizeBundle, preloadReact } from "../../src/bundle.ts";
+import { applyCopyFixes, optimizeBundle, preloadReact } from "../../src/bundle.ts";
+import { COPY_FIXES } from "../../src/copy-fixes.ts";
 import { LANDING_PAGES, META_PIXEL_ID, STORE_FALLBACK } from "../../src/lps.ts";
 import { injectIntoHead, trackingSnippet } from "../../src/tracking.ts";
 import { fetchPageHtml } from "../../src/upstream.ts";
@@ -48,6 +49,21 @@ export default async (request: Request, context: Context) => {
 
   let body = stripNetlifyBadge(html);
   let preloads = "";
+  // Copy fixes for this page, if any (src/copy-fixes.ts). Reported as
+  // "applied/total" in X-Kept-Copy-Fixes so the page checks can tell.
+  let copyFixes = "";
+  const pageFixes = COPY_FIXES[slug];
+  if (pageFixes) {
+    try {
+      const fixed = applyCopyFixes(body, pageFixes.fixes);
+      if (fixed) body = fixed.html;
+      copyFixes = `${fixed ? fixed.applied : 0}/${pageFixes.fixes.length}`;
+      if (fixed?.missing.length) console.error(`[lp] ${slug}: copy fixes not found: ${fixed.missing.join(", ")}`);
+    } catch (err) {
+      copyFixes = `error/${pageFixes.fixes.length}`;
+      console.error(`[lp] ${slug}: could not apply copy fixes`, err);
+    }
+  }
   try {
     const optimized = optimizeBundle(body, { slug, origin: url.origin, videos: page.videos });
     if (optimized) {
@@ -92,6 +108,7 @@ export default async (request: Request, context: Context) => {
       "netlify-vary": "query=v",
       // Paid landing pages: keep them out of search results.
       "x-robots-tag": "noindex",
+      ...(copyFixes ? { "x-kept-copy-fixes": copyFixes } : {}),
     },
   });
 };

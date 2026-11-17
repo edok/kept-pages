@@ -23,6 +23,7 @@ import { writeFileSync } from "node:fs";
 import { LANDING_PAGES, META_PIXEL_ID, STORE_FALLBACK } from "../src/lps.ts";
 import { trackingSnippet } from "../src/tracking.ts";
 import { SALE_TEST, BAR_TEST } from "../src/ann-bar.ts";
+import { COPY_FIXES } from "../src/copy-fixes.ts";
 
 const require = createRequire(import.meta.url);
 const { chromium, webkit, devices } = require("playwright");
@@ -196,6 +197,17 @@ async function pageChecks(browser: any, label: string, device: any) {
       else {
         if (state.links < 1) problems.push("no link to the store");
         if (state.text < 200) problems.push(`only ${state.text} characters of text`);
+      }
+      // Copy fixes (src/copy-fixes.ts): every fix still matches the export, and
+      // none of the old phrases shows on the page.
+      const pageFixes = COPY_FIXES[slug];
+      if (pageFixes) {
+        const header = res?.headers()["x-kept-copy-fixes"];
+        const want = `${pageFixes.fixes.length}/${pageFixes.fixes.length}`;
+        if (header !== want) problems.push(`copy fixes applied: ${header ?? "none"} (want ${want})`);
+        const text = ((await page.evaluate(() => document.body?.innerText || "").catch(() => "")) as string).replace(/\s+/g, " ").toLowerCase();
+        const left = pageFixes.gone.filter((g) => text.includes(g.toLowerCase()));
+        if (left.length) problems.push(`old copy still showing: ${left.join(" | ")}`);
       }
       // The store's offer bar (src/ann-bar.ts) is in place of the design's.
       const bar = await page.evaluate(() => {
