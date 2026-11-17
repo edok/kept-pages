@@ -67,6 +67,14 @@ small router site that owns the domain:
   `kb=t` or `kb=s`, with pixel custom events `LPBar_`, `LPBarNew_` and
   `LPBarClick_` + the version. It's null now; the switch code stays for the next
   bar test (see the comment on `BAR_TEST`).
+- `src/copy-fixes.ts` holds exact text swaps for an exported page, made inside
+  its template before anything else (`applyCopyFixes` in `src/bundle.ts`). Use
+  it when a page says something wrong and the canvas can't be re-exported right
+  away. A fix whose new text is already on the page counts as applied, so fixing
+  the canvas later is safe. Each response reports `X-Kept-Copy-Fixes:
+  applied/total`, and the page checks fail if a fix stops matching or one of the
+  page's `gone` phrases shows. First use: /gift-older-kids, whose copy came from
+  the new-mom gift page (Nov 17, 2026).
 - `public/_redirects` sends everything that isn't a page to the store.
 
 The page designs themselves carry no tracking code. Changing the snippet here
