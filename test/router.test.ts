@@ -166,7 +166,12 @@ test("bar test off: every visitor gets the Tidy bar, with no cookie, store param
   assert.match(bar, /\.kept-ann\{[^}]*-webkit-font-smoothing:antialiased/);
   // Phones: 10px sides, as in the store's bar, so the third line fits on a 375px iPhone.
   assert.match(bar, /\.kept-ann\{[^}]*padding:10px;/);
-  assert.match(bar, /@media \(max-width:374px\)\{\.kept-ann \.kept-ann__text\{font-size:12px!important;letter-spacing:\.12em!important\}\}/);
+  // Type 1px bigger than the Nov 7 Tidy bar (Nov 13, matching the store): phones 14px at .12em, 13.5px under 390px,
+  // 13px at .11em under 375px, desktop 13px; three lines at every width.
+  assert.match(bar, /font-size:14px!important;letter-spacing:\.12em!important;/);
+  assert.match(bar, /@media \(max-width:389px\)\{\.kept-ann \.kept-ann__text\{font-size:13\.5px!important\}\}/);
+  assert.match(bar, /@media \(max-width:374px\)\{\.kept-ann \.kept-ann__text\{font-size:13px!important;letter-spacing:\.11em!important\}\}/);
+  assert.match(bar, /@media \(min-width:641px\)\{[^}]*\}\.kept-ann \.kept-ann__text\{font-size:13px!important;letter-spacing:\.16em!important/);
   assert.ok(bar.includes("25% off 2+ books' + NB + 'with code' + NB"));
   assert.ok(!bar.includes("\\u2014 code:"));
   assert.ok(bar.includes("family=Jost:wght@500;700&display=swap"));
